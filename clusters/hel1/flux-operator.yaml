@@ -25,3 +25,7 @@ spec:
   chartRef:
     kind: OCIRepository
     name: flux-operator
+  values:
+    web:
+      # Sign-in and settings for the web UI (flux.int.bulbashenko.com), from infrastructure/configs/flux-web.
+      configSecretName: flux-web-config
