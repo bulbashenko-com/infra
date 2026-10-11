@@ -10,8 +10,12 @@ labels:
 resources:
   - namespace.yaml
   - secret.sops.yaml
+  - backup.yaml
   - headscale.yaml
 configMapGenerator:
+  - name: volume-backup
+    files:
+      - volume-backup.sh
   - name: headscale-config
     files:
       - config.yaml

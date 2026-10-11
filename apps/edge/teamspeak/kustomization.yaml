@@ -10,3 +10,8 @@ labels:
 resources:
   - namespace.yaml
   - secret.sops.yaml
+  - backup.yaml
+configMapGenerator:
+  - name: volume-backup
+    files:
+      - volume-backup.sh

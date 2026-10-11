@@ -61,4 +61,5 @@ allow "$media" "$KEY_OFFSITE_ID" false
 restore=$(ensure_bucket restore | tail -1)
 ensure_key restore "$KEY_RESTORE_ID" "$KEY_RESTORE_SECRET"
 allow "$restore" "$KEY_RESTORE_ID"
+allow "$restore" "$KEY_OFFSITE_ID" false
 echo "garage bootstrap done"
