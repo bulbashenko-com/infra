@@ -12,6 +12,7 @@ resources:
   - garage.yaml
   - garage-bootstrap.yaml
   - routes.yaml
+  - backup.yaml
 configMapGenerator:
   - name: garage-config
     files:

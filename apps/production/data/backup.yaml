@@ -1,0 +1,33 @@
+# Postgres backups: continuous WAL archiving + daily base backups into Garage (bucket cnpg-backups),
+# kept 14 days. The off-site copy of this bucket is in apps/production/backup.
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: garage
+spec:
+  retentionPolicy: "14d"
+  configuration:
+    destinationPath: s3://cnpg-backups/
+    endpointURL: http://garage.data.svc.cluster.local:3900
+    s3Credentials:
+      accessKeyId: { name: garage, key: KEY_CNPG_ID }
+      secretAccessKey: { name: garage, key: KEY_CNPG_SECRET }
+      region: { name: garage, key: S3_REGION }
+    wal:
+      compression: gzip
+    data:
+      compression: gzip
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: pg-daily
+spec:
+  # CNPG cron has seconds: 03:00 UTC every day.
+  schedule: "0 0 3 * * *"
+  immediate: true
+  backupOwnerReference: self
+  cluster: { name: pg }
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io

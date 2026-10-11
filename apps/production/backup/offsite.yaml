@@ -1,0 +1,60 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: offsite-backup
+  namespace: data
+spec:
+  # After the 03:00 base backup, before the 05:00 Storage Box snapshot.
+  schedule: "0 4 * * *"
+  timeZone: Etc/UTC
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            seccompProfile: { type: RuntimeDefault }
+          containers:
+            - name: rclone
+              image: rclone/rclone:1.71.2
+              command: ["/bin/sh", "/scripts/offsite.sh"]
+              env:
+                - { name: HOME, value: /tmp }
+                - { name: RCLONE_CONFIG_GARAGE_TYPE, value: s3 }
+                - { name: RCLONE_CONFIG_GARAGE_PROVIDER, value: Other }
+                - { name: RCLONE_CONFIG_GARAGE_ENDPOINT, value: "http://garage.data.svc.cluster.local:3900" }
+                - { name: RCLONE_CONFIG_GARAGE_REGION, value: garage }
+                - { name: RCLONE_CONFIG_GARAGE_FORCE_PATH_STYLE, value: "true" }
+                - { name: RCLONE_CONFIG_GARAGE_ACCESS_KEY_ID, valueFrom: { secretKeyRef: { name: garage, key: KEY_OFFSITE_ID } } }
+                - { name: RCLONE_CONFIG_GARAGE_SECRET_ACCESS_KEY, valueFrom: { secretKeyRef: { name: garage, key: KEY_OFFSITE_SECRET } } }
+                - { name: RCLONE_CONFIG_BOX_TYPE, value: sftp }
+                - { name: RCLONE_CONFIG_BOX_HOST, value: u689140.your-storagebox.de }
+                - { name: RCLONE_CONFIG_BOX_PORT, value: "23" }
+                - { name: RCLONE_CONFIG_BOX_USER, valueFrom: { secretKeyRef: { name: offsite-backup, key: BOX_USER } } }
+                - { name: RCLONE_CONFIG_BOX_KNOWN_HOSTS_FILE, value: /scripts/known_hosts }
+                - { name: RCLONE_CONFIG_BOX_SHELL_TYPE, value: unix }
+                - { name: RCLONE_CONFIG_SAFE_TYPE, value: crypt }
+                - { name: RCLONE_CONFIG_SAFE_REMOTE, value: "box:hel1" }
+                - { name: BOX_PASSWORD, valueFrom: { secretKeyRef: { name: offsite-backup, key: BOX_PASSWORD } } }
+                - { name: CRYPT_PASSWORD, valueFrom: { secretKeyRef: { name: offsite-backup, key: CRYPT_PASSWORD } } }
+                - { name: CRYPT_SALT, valueFrom: { secretKeyRef: { name: offsite-backup, key: CRYPT_SALT } } }
+              resources:
+                requests: { cpu: 20m, memory: 64Mi }
+                limits: { memory: 256Mi }
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: { drop: [ALL] }
+              volumeMounts:
+                - { name: scripts, mountPath: /scripts }
+                - { name: tmp, mountPath: /tmp }
+          volumes:
+            - name: scripts
+              configMap: { name: offsite-backup }
+            - { name: tmp, emptyDir: {} }
