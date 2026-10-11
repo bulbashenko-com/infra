@@ -46,8 +46,15 @@ _ship-state:
 node-key:
     #!/usr/bin/env bash
     set -euo pipefail
-    out=$(ssh -t bulbashenko@62.238.18.202 'sudo docker exec headscale-gml9nuytnpijytqxqkundgva headscale preauthkeys create --tags tag:core --expiration 30m -o json' | tr -d '\r')
-    key=$(printf '%s' "$out" | grep -o '"key": *"[^"]*"' | head -1 | sed 's/.*"\([^"]*\)"$/\1/')
-    [ -n "$key" ] || { echo "no key in headscale output" >&2; exit 1; }
+    read -rsp "sudo password on hel1-edge: " pw; echo
+    out=$(printf '%s\n' "$pw" | ssh bulbashenko@62.238.18.202 \
+      'sudo -S -p "" docker exec headscale-gml9nuytnpijytqxqkundgva headscale preauthkeys create --tags tag:core --expiration 30m -o json')
+    unset pw
+    key=$(printf '%s' "$out" | jq -r '.key // empty' 2>/dev/null || true)
+    if [ -z "$key" ]; then
+      echo "no key in headscale output; its shape (values hidden):" >&2
+      printf '%s' "$out" | jq -c 'paths(scalars) | map(tostring) | join(".")' 2>/dev/null >&2 || printf '%s\n' "$out" | sed 's/[A-Za-z0-9]\{20,\}/<redacted>/g' >&2
+      exit 1
+    fi
     printf '%s' "$key" | jq -Rs . | sops set --value-stdin terraform/secrets.sops.env '["TF_VAR_tailscale_authkey"]'
     echo "pre-auth key stored (expires in 30 min): run just apply now"
