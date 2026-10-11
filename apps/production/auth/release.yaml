@@ -1,0 +1,36 @@
+# Ory stack from bulbashenko-com/auth, pinned to one commit: configs (Kustomize base at the repo root)
+# and the auth-ui image built from that same commit. Promote = change both SHAs below.
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: auth
+  namespace: flux-system
+spec:
+  interval: 10m
+  url: https://github.com/bulbashenko-com/auth.git
+  ref:
+    commit: 662344cb5f9ccfdcb34bc18345e7bbc04813d998
+  ignore: |
+    /*
+    !/kustomization.yaml
+    !/deploy/k8s/
+    !/ory/
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: auth
+  namespace: flux-system
+spec:
+  interval: 10m
+  sourceRef:
+    kind: GitRepository
+    name: auth
+  path: ./
+  targetNamespace: auth
+  prune: true
+  wait: true
+  timeout: 10m
+  images:
+    - name: ghcr.io/bulbashenko-com/auth-ui
+      newTag: 662344cb5f9ccfdcb34bc18345e7bbc04813d998
