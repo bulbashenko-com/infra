@@ -12,10 +12,12 @@ check:
 secret file:
     sops {{file}}
 
-# OpenTofu plan (needs TF_VAR_state_passphrase and provider tokens, see terraform/README.md)
+tofu := "sops exec-env secrets.sops.env"
+
+# OpenTofu plan (credentials from terraform/secrets.sops.env)
 plan:
-    cd terraform && tofu init -input=false >/dev/null && tofu plan -input=false
+    cd terraform && {{tofu}} 'tofu init -input=false >/dev/null && tofu plan -input=false -compact-warnings'
 
 # OpenTofu apply: owner only
 apply:
-    cd terraform && tofu apply -input=false
+    cd terraform && {{tofu}} 'tofu apply -input=false'

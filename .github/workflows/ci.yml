@@ -24,3 +24,13 @@ jobs:
           ./gitleaks git --redact --verbose .
       - name: SOPS encryption check
         run: scripts/check-sops.sh
+
+  tofu-fmt:
+    name: tofu-fmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: 1.13.1
+      - run: tofu fmt -check -recursive -diff terraform
