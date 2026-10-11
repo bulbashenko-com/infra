@@ -40,7 +40,8 @@ spec:
                 runAsUser: 0
                 allowPrivilegeEscalation: false
               volumeMounts:
-                - { name: data, mountPath: /data, readOnly: true }
+                # Writable: SQLite in WAL mode touches -shm even to read. Accessed as the app user only.
+                - { name: data, mountPath: /data }
                 - { name: scripts, mountPath: /scripts }
                 - { name: tmp, mountPath: /tmp }
           volumes:
