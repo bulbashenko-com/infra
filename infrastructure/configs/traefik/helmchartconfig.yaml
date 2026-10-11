@@ -1,0 +1,19 @@
+# Overrides for k3s' bundled Traefik (3.7). Nodes expose 80/443 only on the mesh and hel1-net
+# (Hetzner firewall); public web arrives through cloudflared inside the cluster.
+apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: traefik
+  namespace: kube-system
+spec:
+  valuesContent: |-
+    logs:
+      access:
+        enabled: true
+    service:
+      spec:
+        # Keep the client address (mesh IP) so ipAllowList can see it.
+        externalTrafficPolicy: Local
+    providers:
+      kubernetesCRD:
+        allowCrossNamespace: true

@@ -99,3 +99,15 @@ status:
     kubectl get nodes --no-headers
     flux get all -A --status-selector ready=false 2>/dev/null | grep -v '^$' || true
     kubectl get pods -A --field-selector=status.phase!=Running,status.phase!=Succeeded --no-headers 2>/dev/null || true
+
+# after `just apply` created the tunnel: store its connector token as a SOPS Secret for cloudflared
+tunnel-token:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    f=infrastructure/configs/cloudflared/tunnel-token.sops.yaml
+    mkdir -p "$(dirname "$f")"
+    tok=$(cd terraform && sops exec-env secrets.sops.env 'tofu output -raw tunnel_hel1_token')
+    printf 'apiVersion: v1\nkind: Secret\nmetadata:\n  name: tunnel-token\n  namespace: cloudflared\ntype: Opaque\nstringData:\n  token: %s\n' "$tok" \
+      | sops encrypt --filename-override "$f" --input-type yaml --output-type yaml /dev/stdin > "$f"
+    unset tok
+    echo "wrote $f"
