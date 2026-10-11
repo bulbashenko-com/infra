@@ -1,19 +1,31 @@
+# Mail IP: PTR mail.bulbashenko.com, SPF and sender reputation are tied to it.
+# It must survive the server (rebuild, replacement, move to another node).
 resource "hcloud_primary_ip" "core_v4" {
   assignee_id       = hcloud_server.hel1_core.id
   assignee_type     = "server"
-  auto_delete       = true
-  delete_protection = false
+  auto_delete       = false
+  delete_protection = true
   name              = "bulbashenko.com"
   type              = "ipv4"
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
+# Mail IP: PTR mail.bulbashenko.com, SPF and sender reputation are tied to it.
+# It must survive the server (rebuild, replacement, move to another node).
 resource "hcloud_primary_ip" "core_v6" {
   assignee_id       = hcloud_server.hel1_core.id
   assignee_type     = "server"
-  auto_delete       = true
-  delete_protection = false
+  auto_delete       = false
+  delete_protection = true
   name              = "bulbashenko.com (ipv6)"
   type              = "ipv6"
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "hcloud_primary_ip" "edge_v4" {
