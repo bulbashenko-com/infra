@@ -28,6 +28,10 @@ spec:
             - 10.42.0.0/16
       websecure:
         hostPort: 443
+    # One Traefik per node: every node answers on its own 80/443 (mesh, hel1-net, and public names that
+    # point at a node such as hs.bulbashenko.com on hel1-edge).
+    deployment:
+      kind: DaemonSet
     # One pod per node owns the host ports, so replace before starting the new one.
     updateStrategy:
       type: RollingUpdate
