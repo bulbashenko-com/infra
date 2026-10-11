@@ -18,6 +18,11 @@ spec:
     parameters:
       shared_buffers: 128MB
       max_connections: "100"
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: garage
   bootstrap:
     initdb:
       database: bulbashenko

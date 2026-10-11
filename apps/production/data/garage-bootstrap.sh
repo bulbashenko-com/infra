@@ -37,8 +37,8 @@ ensure_key() { # name id secret
   fi
 }
 
-allow() { # bucketId keyId
-  post /v2/AllowBucketKey "{\"bucketId\":\"$1\",\"accessKeyId\":\"$2\",\"permissions\":{\"read\":true,\"write\":true,\"owner\":false}}" >/dev/null
+allow() { # bucketId keyId [write=true|false]
+  post /v2/AllowBucketKey "{\"bucketId\":\"$1\",\"accessKeyId\":\"$2\",\"permissions\":{\"read\":true,\"write\":${3:-true},\"owner\":false}}" >/dev/null
 }
 
 media=$(ensure_bucket media media.bulbashenko.com | tail -1)
@@ -48,4 +48,12 @@ ensure_key app-media "$KEY_APP_MEDIA_ID" "$KEY_APP_MEDIA_SECRET"
 ensure_key ci-skull "$KEY_CI_SKULL_ID" "$KEY_CI_SKULL_SECRET"
 allow "$media" "$KEY_APP_MEDIA_ID"
 allow "$media" "$KEY_CI_SKULL_ID"
+
+# CNPG base backups and WAL (barman-cloud plugin), and a read-only key for the off-site copy.
+cnpg=$(ensure_bucket cnpg-backups | tail -1)
+ensure_key cnpg "$KEY_CNPG_ID" "$KEY_CNPG_SECRET"
+ensure_key offsite "$KEY_OFFSITE_ID" "$KEY_OFFSITE_SECRET"
+allow "$cnpg" "$KEY_CNPG_ID"
+allow "$cnpg" "$KEY_OFFSITE_ID" false
+allow "$media" "$KEY_OFFSITE_ID" false
 echo "garage bootstrap done"
