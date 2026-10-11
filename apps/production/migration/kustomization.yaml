@@ -2,7 +2,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: data
-nameSuffix: -r1
+nameSuffix: -r2
 resources:
   - source.sops.yaml
   - jobs.yaml
