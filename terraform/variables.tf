@@ -54,3 +54,9 @@ variable "tailscale_authkey" {
   sensitive   = true
   default     = ""
 }
+
+variable "storage_box_hel1_password" {
+  description = "Password of the hel1-backups Storage Box subaccount (also used by the cluster's offsite-backup CronJob)."
+  type        = string
+  sensitive   = true
+}
