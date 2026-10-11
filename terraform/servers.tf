@@ -115,5 +115,10 @@ resource "hcloud_server" "hel1_edge" {
     k3s_version    = var.k3s_version
   })
 
+  lifecycle {
+    # cloud-init runs once; template changes apply on a deliberate `tofu apply -replace=...`.
+    ignore_changes = [user_data, image]
+  }
+
   depends_on = [hcloud_network_subnet.hel1_net]
 }

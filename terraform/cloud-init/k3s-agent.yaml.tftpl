@@ -23,6 +23,17 @@ packages:
   - unattended-upgrades
 
 write_files:
+  # hel1-net: when the network is attached after the first boot, cloud-init does not configure the NIC.
+  # Hetzner names the public NIC eth0 and private ones en* (enp7s0 on CX*3), so DHCP on en* is the private net.
+  - path: /etc/netplan/60-hel1-net.yaml
+    permissions: "0600"
+    content: |
+      network:
+        version: 2
+        ethernets:
+          private:
+            match: { name: "en*" }
+            dhcp4: true
   - path: /etc/ssh/sshd_config.d/10-hardening.conf
     content: |
       PasswordAuthentication no
@@ -55,12 +66,14 @@ write_files:
 runcmd:
   - systemctl restart ssh
   - systemctl enable --now block-pod-metadata.service
+  - netplan apply
   # Private network interface (hel1-net) for flannel, found by address.
   - |
     for i in $(seq 1 60); do
       IFACE=$(ip -o -4 addr show to ${private_ip}/32 | awk '{print $2}' | head -1)
       [ -n "$IFACE" ] && break; sleep 2
     done
+    [ -n "$IFACE" ] || { echo "hel1-net address ${private_ip} not found" >&2; exit 1; }
     echo "flannel-iface: $IFACE" >> /etc/rancher/k3s/config.yaml
   # k3s agent (pinned, same version as the server).
   - curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="${k3s_version}" sh -s - agent
