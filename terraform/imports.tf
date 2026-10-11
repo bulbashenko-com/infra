@@ -49,7 +49,7 @@ import {
 
 # --- Cloudflare DNS (bulbashenko.com) --------------------------------------
 import {
-  to = cloudflare_dns_record.auth_cname
+  to = cloudflare_dns_record.auth
   id = "abb0bea137c9c120a465f8a609c98e02/f59b2ffd257dbceda7ea30e146d091b9"
 }
 import {
@@ -61,7 +61,7 @@ import {
   id = "abb0bea137c9c120a465f8a609c98e02/5ac30afb2c0296d395b810b2e071cb10"
 }
 import {
-  to = cloudflare_dns_record.apex_a
+  to = cloudflare_dns_record.apex
   id = "abb0bea137c9c120a465f8a609c98e02/2616dc7140901129d097e74d7ab28742"
 }
 import {
@@ -85,11 +85,11 @@ import {
   id = "abb0bea137c9c120a465f8a609c98e02/721f85174f0ec98854684ea54aac69e9"
 }
 import {
-  to = cloudflare_dns_record.media_cname
+  to = cloudflare_dns_record.media
   id = "abb0bea137c9c120a465f8a609c98e02/f05d0bb378a66e791a18bb657c0620e2"
 }
 import {
-  to = cloudflare_dns_record.s3_cname
+  to = cloudflare_dns_record.s3
   id = "abb0bea137c9c120a465f8a609c98e02/4e0d61bea58fe92846de93093268b988"
 }
 import {
@@ -97,6 +97,6 @@ import {
   id = "abb0bea137c9c120a465f8a609c98e02/0b5947c7d53d3f923da1eac46191e688"
 }
 import {
-  to = cloudflare_dns_record.www_cname
+  to = cloudflare_dns_record.www
   id = "abb0bea137c9c120a465f8a609c98e02/23d2773cdbcce9993d4c7ab35099e435"
 }

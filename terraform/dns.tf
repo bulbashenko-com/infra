@@ -2,19 +2,19 @@
 # Mail auth records (MX, SPF, DKIM, mail TXT, _smtp._tls) are owned by Stalwart
 # (comment "managed by Stalwart") and are deliberately NOT managed here.
 
-resource "cloudflare_dns_record" "apex_a" {
-  comment = "[web] origin: Hetzner CX22. The only IP for proxied hosts"
-  content = "65.109.174.215"
+resource "cloudflare_dns_record" "apex" {
+  comment = "[web] Cloudflare Tunnel hel1 -> k3s Traefik"
+  content = local.tunnel_cname
   name    = "bulbashenko.com"
   proxied = true
   ttl     = 1
-  type    = "A"
+  type    = "CNAME"
   zone_id = var.cloudflare_zone_id
 }
 
-resource "cloudflare_dns_record" "auth_cname" {
+resource "cloudflare_dns_record" "auth" {
   comment = "[auth] Authelia SSO portal and OIDC issuer (public)"
-  content = "bulbashenko.com"
+  content = local.tunnel_cname
   name    = "auth.bulbashenko.com"
   proxied = true
   ttl     = 1
@@ -92,9 +92,9 @@ resource "cloudflare_dns_record" "mail_a" {
   zone_id = var.cloudflare_zone_id
 }
 
-resource "cloudflare_dns_record" "media_cname" {
+resource "cloudflare_dns_record" "media" {
   comment = "[storage] Garage website endpoint: media bucket"
-  content = "bulbashenko.com"
+  content = local.tunnel_cname
   name    = "media.bulbashenko.com"
   proxied = true
   ttl     = 1
@@ -102,9 +102,9 @@ resource "cloudflare_dns_record" "media_cname" {
   zone_id = var.cloudflare_zone_id
 }
 
-resource "cloudflare_dns_record" "s3_cname" {
+resource "cloudflare_dns_record" "s3" {
   comment = "[storage] Garage S3 API"
-  content = "bulbashenko.com"
+  content = local.tunnel_cname
   name    = "s3.bulbashenko.com"
   proxied = true
   ttl     = 1
@@ -122,9 +122,9 @@ resource "cloudflare_dns_record" "ts_a" {
   zone_id = var.cloudflare_zone_id
 }
 
-resource "cloudflare_dns_record" "www_cname" {
+resource "cloudflare_dns_record" "www" {
   comment = "[web] redirects to apex (Coolify)"
-  content = "bulbashenko.com"
+  content = local.tunnel_cname
   name    = "www.bulbashenko.com"
   proxied = true
   ttl     = 1
@@ -145,4 +145,25 @@ moved {
 moved {
   from = cloudflare_dns_record.coolify_cname
   to   = cloudflare_dns_record.coolify
+}
+
+moved {
+  from = cloudflare_dns_record.apex_a
+  to   = cloudflare_dns_record.apex
+}
+moved {
+  from = cloudflare_dns_record.www_cname
+  to   = cloudflare_dns_record.www
+}
+moved {
+  from = cloudflare_dns_record.auth_cname
+  to   = cloudflare_dns_record.auth
+}
+moved {
+  from = cloudflare_dns_record.media_cname
+  to   = cloudflare_dns_record.media
+}
+moved {
+  from = cloudflare_dns_record.s3_cname
+  to   = cloudflare_dns_record.s3
 }
