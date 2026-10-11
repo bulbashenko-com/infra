@@ -25,3 +25,32 @@ variable "storage_box_password" {
   type        = string
   sensitive   = true
 }
+
+variable "owner_ssh_public_key" {
+  type    = string
+  default = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJUPyxCHYtGFd7kthLGvHXBiz4eW8lXLd3XPctyBPgfA bulbashenko"
+}
+
+variable "node_password_hash" {
+  description = "SHA-512 crypt hash of bulbashenko's sudo password on k3s nodes (plaintext: NODE_SUDO_PASSWORD in secrets.sops.env)."
+  type        = string
+  sensitive   = true
+}
+
+variable "k3s_token" {
+  description = "Shared k3s cluster token (server and agents)."
+  type        = string
+  sensitive   = true
+}
+
+variable "k3s_version" {
+  type    = string
+  default = "v1.36.5+k3s1"
+}
+
+variable "tailscale_authkey" {
+  description = "One-time Headscale pre-auth key (tag:core, short expiry). Set right before creating a node; empty = join manually."
+  type        = string
+  sensitive   = true
+  default     = ""
+}

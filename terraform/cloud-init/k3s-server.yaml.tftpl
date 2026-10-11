@@ -1,0 +1,86 @@
+#cloud-config
+# k3s server node. Rendered by OpenTofu; changes apply only on rebuild (user_data is ignored after create).
+# Hetzner metadata (169.254.169.254) serves this file, so pods are blocked from it (see block-pod-metadata).
+hostname: ${hostname}
+preserve_hostname: false
+
+groups:
+  - k3s-admins
+
+users:
+  - name: bulbashenko
+    groups: [sudo, k3s-admins]
+    shell: /bin/bash
+    lock_passwd: false
+    passwd: ${password_hash}
+    ssh_authorized_keys:
+      - ${ssh_public_key}
+
+ssh_pwauth: false
+disable_root: true
+package_update: true
+package_upgrade: true
+packages:
+  - curl
+  - ca-certificates
+  - unattended-upgrades
+
+write_files:
+  - path: /etc/ssh/sshd_config.d/10-hardening.conf
+    content: |
+      PasswordAuthentication no
+      KbdInteractiveAuthentication no
+      PermitRootLogin no
+  - path: /etc/systemd/system/block-pod-metadata.service
+    content: |
+      [Unit]
+      Description=Drop pod traffic to the Hetzner metadata service (it serves user_data with the k3s token)
+      Before=k3s.service
+      After=network-pre.target
+
+      [Service]
+      Type=oneshot
+      RemainAfterExit=yes
+      ExecStart=/usr/sbin/iptables -t raw -I PREROUTING -s ${pod_cidr} -d 169.254.169.254/32 -j DROP
+      ExecStop=/usr/sbin/iptables -t raw -D PREROUTING -s ${pod_cidr} -d 169.254.169.254/32 -j DROP
+
+      [Install]
+      WantedBy=multi-user.target
+  - path: /etc/rancher/k3s/config.yaml
+    permissions: "0600"
+    content: |
+      token: ${k3s_token}
+      node-ip: ${private_ip}
+      advertise-address: ${private_ip}
+      tls-san:
+        - ${hostname}.int.bulbashenko.com
+        - ${private_ip}
+      cluster-cidr: ${pod_cidr}
+      secrets-encryption: true
+      write-kubeconfig-mode: "0640"
+      write-kubeconfig-group: k3s-admins
+      node-label:
+        - node.bulbashenko.com/role=control-plane
+
+runcmd:
+  - systemctl restart ssh
+  - systemctl enable --now block-pod-metadata.service
+  # Private network interface (hel1-net) for flannel, found by address.
+  - |
+    for i in $(seq 1 60); do
+      IFACE=$(ip -o -4 addr show to ${private_ip}/32 | awk '{print $2}' | head -1)
+      [ -n "$IFACE" ] && break; sleep 2
+    done
+    echo "flannel-iface: $IFACE" >> /etc/rancher/k3s/config.yaml
+  # Tailscale -> Headscale mesh (one-time pre-auth key, expires in minutes).
+  - curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/noble.noarmor.gpg -o /usr/share/keyrings/tailscale-archive-keyring.gpg
+  - curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/noble.tailscale-keyring.list -o /etc/apt/sources.list.d/tailscale.list
+  - apt-get update && apt-get install -y tailscale
+  - |
+    if [ -n "${tailscale_authkey}" ]; then
+      tailscale up --login-server https://hs.bulbashenko.com --auth-key "${tailscale_authkey}" \
+        --hostname ${hostname} --accept-dns=false --accept-routes=false
+      tailscale set --snat-subnet-routes=false
+    fi
+  # k3s (pinned).
+  - curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="${k3s_version}" sh -s - server
