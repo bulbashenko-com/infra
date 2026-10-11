@@ -1,0 +1,51 @@
+# Nightly consistent copy of the headscale volume to Garage restore/headscale.tar.gz (03:30 UTC); the 04:00 off-site job
+# carries it, encrypted, to the Storage Box. restore-once reads the same file to fill an empty volume.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: volume-backup
+spec:
+  schedule: "30 3 * * *"
+  timeZone: Etc/UTC
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          restartPolicy: Never
+          # Same node as the volume (local-path).
+          nodeSelector:
+            node.bulbashenko.com/role: edge
+          securityContext:
+            seccompProfile: { type: RuntimeDefault }
+          containers:
+            - name: backup
+              image: alpine:3.22
+              command: ["/bin/sh", "/scripts/volume-backup.sh"]
+              env:
+                - { name: ARCHIVE, value: headscale.tar.gz }
+                - { name: RUN_AS, value: "65532:65532" }
+                - name: RESTORE_S3_ACCESS_KEY_ID
+                  valueFrom: { secretKeyRef: { name: headscale, key: RESTORE_S3_ACCESS_KEY_ID } }
+                - name: RESTORE_S3_SECRET_ACCESS_KEY
+                  valueFrom: { secretKeyRef: { name: headscale, key: RESTORE_S3_SECRET_ACCESS_KEY } }
+              resources:
+                requests: { cpu: 10m, memory: 32Mi }
+                limits: { memory: 256Mi }
+              securityContext:
+                # Root only to install tools; the data is read as the app user via su-exec.
+                runAsUser: 0
+                allowPrivilegeEscalation: false
+              volumeMounts:
+                - { name: data, mountPath: /data, readOnly: true }
+                - { name: scripts, mountPath: /scripts }
+                - { name: tmp, mountPath: /tmp }
+          volumes:
+            - name: data
+              persistentVolumeClaim: { claimName: headscale-data }
+            - name: scripts
+              configMap: { name: volume-backup }
+            - { name: tmp, emptyDir: {} }
