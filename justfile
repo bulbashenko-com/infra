@@ -36,7 +36,7 @@ _ship-state:
     git switch -q -c "$b"
     git add "$f"
     git commit -q -m "Update encrypted state after apply"
-    git push -q -u origin "$b"
+    git -c credential.helper= -c credential.helper='!gh auth git-credential' push -q -u origin "$b"
     gh pr create --base main --title "State after apply ($b)" --body "Encrypted terraform.tfstate written by \`just apply\`."
     gh pr merge --auto --merge --delete-branch
     echo "Staying on $b. After the PR merges: git switch main && git pull"
