@@ -19,6 +19,10 @@ for f in "${files[@]}"; do
       fi ;;
     *.yaml|*.yml)
       if grep -qE '^kind:[[:space:]]*Secret[[:space:]]*$' "$f"; then
+        # Payload-free Secrets (e.g. service-account tokens) may opt out with a marker.
+        if grep -q '^# check-sops: payload-free-secret' "$f" && ! grep -qE '^(data|stringData):' "$f"; then
+          continue
+        fi
         echo "PLAINTEXT Secret manifest (use *.sops.yaml): $f"; status=1
       fi ;;
   esac

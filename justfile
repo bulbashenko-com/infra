@@ -58,3 +58,44 @@ node-key:
     fi
     printf '%s' "$key" | jq -Rs . | sops set --value-stdin terraform/secrets.sops.env '["TF_VAR_tailscale_authkey"]'
     echo "pre-auth key stored (expires in 30 min): run just apply now"
+
+kube_admin := env_var('HOME') / ".kube/hel1-admin.yaml"
+
+# one-time: install Flux Operator, the cluster SOPS key and the FluxInstance (owner, admin kubeconfig)
+bootstrap-flux:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    export KUBECONFIG={{kube_admin}}
+    helm upgrade --install flux-operator oci://ghcr.io/controlplaneio-fluxcd/charts/flux-operator \
+      --version 0.61.0 --namespace flux-system --create-namespace --wait
+    sops decrypt bootstrap/hel1/sops-age.sops.yaml | kubectl apply -f -
+    kubectl apply -f clusters/hel1/flux-instance.yaml
+    kubectl -n flux-system wait fluxinstance/flux --for=condition=Ready --timeout=5m
+    kubectl -n flux-system get fluxinstance,kustomizations,helmreleases
+
+# write ~/.kube/hel1-readonly.yaml for AI agents from the claude-readonly ServiceAccount (owner)
+kubeconfig-readonly:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    export KUBECONFIG={{kube_admin}}
+    out="$HOME/.kube/hel1-readonly.yaml"
+    server=$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}')
+    ca=$(kubectl config view --raw --minify -o jsonpath='{.clusters[0].cluster.certificate-authority-data}')
+    token=$(kubectl -n access get secret claude-readonly-token -o jsonpath='{.data.token}' | base64 -d)
+    umask 077
+    printf '%s\n' "apiVersion: v1" "kind: Config" \
+      "clusters: [{name: hel1, cluster: {server: $server, certificate-authority-data: $ca}}]" \
+      "users: [{name: claude-readonly, user: {token: $token}}]" \
+      "contexts: [{name: hel1-readonly, context: {cluster: hel1, user: claude-readonly}}]" \
+      "current-context: hel1-readonly" > "$out"
+    unset token
+    KUBECONFIG="$out" kubectl auth can-i --list >/dev/null && echo "wrote $out"
+
+# compact cluster status (read-only kubeconfig)
+status:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    export KUBECONFIG="$HOME/.kube/hel1-readonly.yaml"
+    kubectl get nodes --no-headers
+    flux get all -A --status-selector ready=false 2>/dev/null | grep -v '^$' || true
+    kubectl get pods -A --field-selector=status.phase!=Running,status.phase!=Succeeded --no-headers 2>/dev/null || true
