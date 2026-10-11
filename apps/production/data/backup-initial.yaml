@@ -1,0 +1,11 @@
+# First base backup right after enabling the plugin (the ScheduledBackup's immediate run started before
+# the instance had the sidecar). A Backup object is a record of a finished backup; keep it.
+apiVersion: postgresql.cnpg.io/v1
+kind: Backup
+metadata:
+  name: pg-initial-20261012
+spec:
+  cluster: { name: pg }
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
