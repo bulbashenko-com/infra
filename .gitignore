@@ -1,0 +1,13 @@
+# Decrypted or local-only material
+*.dec
+*.dec.*
+*.agekey
+age.key
+.env
+.env.*
+
+# OpenTofu working files (encrypted state IS committed, see terraform/README.md)
+terraform/.terraform/
+terraform/*.tfplan
+terraform/crash.log
+terraform/*.tfstate.backup

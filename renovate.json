@@ -1,0 +1,9 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "flux": { "managerFilePatterns": ["/\\.ya?ml$/"] },
+  "kubernetes": { "managerFilePatterns": ["/(clusters|infrastructure|apps)/.+\\.ya?ml$/"] },
+  "packageRules": [
+    { "matchUpdateTypes": ["minor", "patch"], "matchCurrentVersion": "!/^0/", "groupName": "non-major" }
+  ]
+}

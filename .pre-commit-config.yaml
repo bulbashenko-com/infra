@@ -1,0 +1,18 @@
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
+  - repo: local
+    hooks:
+      - id: check-sops
+        name: secrets are SOPS-encrypted
+        entry: scripts/check-sops.sh
+        language: script
+        files: \.(ya?ml|json|env)$
+      - id: tofu-fmt
+        name: tofu fmt
+        entry: tofu fmt -check -recursive terraform
+        language: system
+        pass_filenames: false
+        files: ^terraform/.*\.tf$
