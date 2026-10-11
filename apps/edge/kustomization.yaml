@@ -1,0 +1,6 @@
+# Workloads pinned to hel1-edge (node label node.bulbashenko.com/role=edge): they own its public IP.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - headscale
+  - teamspeak

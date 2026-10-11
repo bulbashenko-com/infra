@@ -1,0 +1,26 @@
+# Workloads that own hel1-edge's public IP (Headscale, TeamSpeak). Suspended until hel1-edge has joined
+# the cluster as an agent with node.bulbashenko.com/role=edge and the restore archives are in Garage.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: edge
+  namespace: flux-system
+  labels:
+    bulbashenko.com/layer: app
+    bulbashenko.com/app: edge
+spec:
+  suspend: true
+  dependsOn:
+    - name: apps
+  interval: 10m
+  path: ./apps/edge
+  prune: true
+  wait: true
+  timeout: 10m
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-age

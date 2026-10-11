@@ -1,0 +1,114 @@
+# VPN control server and embedded DERP for the mesh (int.bulbashenko.com). hs.bulbashenko.com is DNS-only
+# to hel1-edge's IP: Traefik on that node terminates TLS, STUN is a host port there.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: headscale-data
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: local-path
+  resources: { requests: { storage: 1Gi } }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: headscale
+spec:
+  replicas: 1
+  strategy: { type: Recreate }
+  selector:
+    matchLabels: { app: headscale }
+  template:
+    metadata:
+      labels: { app: headscale }
+    spec:
+      nodeSelector:
+        node.bulbashenko.com/role: edge
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile: { type: RuntimeDefault }
+      initContainers:
+        - name: restore
+          image: rclone/rclone:1.71.2
+          command: ["/bin/sh", "/scripts/restore-once.sh"]
+          env:
+            - { name: ARCHIVE, value: headscale.tar.gz }
+            - { name: HOME, value: /tmp }
+          envFrom:
+            - secretRef: { name: headscale }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          volumeMounts:
+            - { name: data, mountPath: /data }
+            - { name: scripts, mountPath: /scripts }
+            - { name: tmp, mountPath: /tmp }
+      containers:
+        - name: headscale
+          image: headscale/headscale:v0.29.4
+          args: ["serve"]
+          env:
+            - name: HEADSCALE_OIDC_CLIENT_SECRET
+              valueFrom: { secretKeyRef: { name: headscale, key: HEADSCALE_OIDC_CLIENT_SECRET } }
+          ports:
+            - { name: http, containerPort: 8080 }
+            - { name: stun, containerPort: 3478, hostPort: 3478, protocol: UDP }
+          readinessProbe:
+            httpGet: { path: /health, port: http }
+          livenessProbe:
+            httpGet: { path: /health, port: http }
+            periodSeconds: 30
+          resources:
+            requests: { cpu: 20m, memory: 48Mi }
+            limits: { memory: 256Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          volumeMounts:
+            - { name: data, mountPath: /var/lib/headscale }
+            - { name: config, mountPath: /etc/headscale }
+            - { name: run, mountPath: /var/run/headscale }
+      volumes:
+        - name: data
+          persistentVolumeClaim: { claimName: headscale-data }
+        - name: config
+          configMap: { name: headscale-config }
+        - name: scripts
+          configMap: { name: restore-once }
+        - { name: run, emptyDir: {} }
+        - { name: tmp, emptyDir: {} }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: headscale
+spec:
+  selector: { app: headscale }
+  ports:
+    - { name: http, port: 8080, targetPort: http }
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: hs
+spec:
+  secretName: hs-tls
+  issuerRef: { kind: ClusterIssuer, name: letsencrypt }
+  dnsNames: [hs.bulbashenko.com]
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: headscale
+spec:
+  entryPoints: [websecure]
+  routes:
+    - match: Host(`hs.bulbashenko.com`)
+      services: [{ name: headscale, port: 8080 }]
+  tls:
+    secretName: hs-tls

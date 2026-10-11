@@ -1,0 +1,15 @@
+// Who may reach what inside the mesh. Changes roll the headscale Deployment (ConfigMap hash).
+{
+  "groups": {
+    "group:admins": ["admin@"]
+  },
+  "tagOwners": {
+    "tag:core": ["group:admins"],
+    "tag:edge": ["group:admins"]
+  },
+  "grants": [
+    // Admin devices reach both servers and each other.
+    {"src": ["group:admins"], "dst": ["tag:core", "tag:edge"], "ip": ["*"]},
+    {"src": ["group:admins"], "dst": ["autogroup:self"], "ip": ["*"]}
+  ]
+}
