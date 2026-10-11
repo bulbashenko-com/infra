@@ -57,7 +57,9 @@ spec:
       containers:
         - name: sync
           image: rclone/rclone:1.71.2
-          args: ["sync", "old:media", "new:media", "--metadata", "--checksum", "-v", "--config", "/dev/null"]
+          # core's origin cert for s3.bulbashenko.com is only trusted behind Cloudflare; this one-shot copy
+          # runs over hel1-net, so TLS verification is skipped here.
+          args: ["sync", "old:media", "new:media", "--metadata", "--checksum", "-v", "--config", "/dev/null", "--no-check-certificate"]
           env:
             - { name: RCLONE_CONFIG_OLD_TYPE, value: s3 }
             - { name: RCLONE_CONFIG_OLD_PROVIDER, value: Other }
