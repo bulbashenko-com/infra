@@ -1,0 +1,66 @@
+#cloud-config
+# k3s agent node. Rendered by OpenTofu; user_data is fixed at create time (changing it replaces the node).
+# Hetzner metadata (169.254.169.254) serves this file, so pods are blocked from it (see block-pod-metadata).
+hostname: ${hostname}
+preserve_hostname: false
+
+users:
+  - name: bulbashenko
+    groups: [sudo]
+    shell: /bin/bash
+    lock_passwd: false
+    passwd: ${password_hash}
+    ssh_authorized_keys:
+      - ${ssh_public_key}
+
+ssh_pwauth: false
+disable_root: true
+package_update: true
+package_upgrade: true
+packages:
+  - curl
+  - ca-certificates
+  - unattended-upgrades
+
+write_files:
+  - path: /etc/ssh/sshd_config.d/10-hardening.conf
+    content: |
+      PasswordAuthentication no
+      KbdInteractiveAuthentication no
+      PermitRootLogin no
+  - path: /etc/systemd/system/block-pod-metadata.service
+    content: |
+      [Unit]
+      Description=Drop pod traffic to the Hetzner metadata service (it serves user_data with the k3s token)
+      Before=k3s-agent.service
+      After=network-pre.target
+
+      [Service]
+      Type=oneshot
+      RemainAfterExit=yes
+      ExecStart=/usr/sbin/iptables -t raw -I PREROUTING -s ${pod_cidr} -d 169.254.169.254/32 -j DROP
+      ExecStop=/usr/sbin/iptables -t raw -D PREROUTING -s ${pod_cidr} -d 169.254.169.254/32 -j DROP
+
+      [Install]
+      WantedBy=multi-user.target
+  - path: /etc/rancher/k3s/config.yaml
+    permissions: "0600"
+    content: |
+      server: https://${server_ip}:6443
+      token: ${k3s_token}
+      node-ip: ${private_ip}
+      node-label:
+        - node.bulbashenko.com/role=${role}
+
+runcmd:
+  - systemctl restart ssh
+  - systemctl enable --now block-pod-metadata.service
+  # Private network interface (hel1-net) for flannel, found by address.
+  - |
+    for i in $(seq 1 60); do
+      IFACE=$(ip -o -4 addr show to ${private_ip}/32 | awk '{print $2}' | head -1)
+      [ -n "$IFACE" ] && break; sleep 2
+    done
+    echo "flannel-iface: $IFACE" >> /etc/rancher/k3s/config.yaml
+  # k3s agent (pinned, same version as the server).
+  - curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="${k3s_version}" sh -s - agent
