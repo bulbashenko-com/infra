@@ -65,14 +65,6 @@ import {
   id = "abb0bea137c9c120a465f8a609c98e02/2616dc7140901129d097e74d7ab28742"
 }
 import {
-  to = cloudflare_dns_record.apex_mx
-  id = "abb0bea137c9c120a465f8a609c98e02/6ea15812aade304a1d2e14e7a1559072"
-}
-import {
-  to = cloudflare_dns_record.apex_txt
-  id = "abb0bea137c9c120a465f8a609c98e02/2765f86424d5db7ed97f7588cc09e369"
-}
-import {
   to = cloudflare_dns_record.coolify_cname
   id = "abb0bea137c9c120a465f8a609c98e02/cdbcf25c8a31f502faed0a006a57f59f"
 }
@@ -93,10 +85,6 @@ import {
   id = "abb0bea137c9c120a465f8a609c98e02/721f85174f0ec98854684ea54aac69e9"
 }
 import {
-  to = cloudflare_dns_record.mail_txt
-  id = "abb0bea137c9c120a465f8a609c98e02/fbf5b656292f74fe2c67730b2a857170"
-}
-import {
   to = cloudflare_dns_record.media_cname
   id = "abb0bea137c9c120a465f8a609c98e02/f05d0bb378a66e791a18bb657c0620e2"
 }
@@ -105,20 +93,8 @@ import {
   id = "abb0bea137c9c120a465f8a609c98e02/4e0d61bea58fe92846de93093268b988"
 }
 import {
-  to = cloudflare_dns_record.smtp__tls_txt
-  id = "abb0bea137c9c120a465f8a609c98e02/f98b049f6a693116b65d1d74f46004e3"
-}
-import {
   to = cloudflare_dns_record.ts_a
   id = "abb0bea137c9c120a465f8a609c98e02/0b5947c7d53d3f923da1eac46191e688"
-}
-import {
-  to = cloudflare_dns_record.v1_ed25519_20261006__domainkey_txt
-  id = "abb0bea137c9c120a465f8a609c98e02/b3fd5fd0ce138dff62de52fa5690e5e4"
-}
-import {
-  to = cloudflare_dns_record.v1_rsa_20261006__domainkey_txt
-  id = "abb0bea137c9c120a465f8a609c98e02/5e51f5817d1bf5703040d85d7844f616"
 }
 import {
   to = cloudflare_dns_record.www_cname

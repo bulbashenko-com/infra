@@ -19,3 +19,9 @@ variable "location" {
   type    = string
   default = "hel1"
 }
+
+variable "storage_box_password" {
+  description = "Primary Storage Box account password (login is by SSH key; kept for reference). TF_VAR_storage_box_password."
+  type        = string
+  sensitive   = true
+}
