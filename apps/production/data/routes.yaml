@@ -1,0 +1,14 @@
+# Public Garage endpoints through Cloudflare Tunnel → Traefik `web`.
+#   media.bulbashenko.com: website endpoint (the media bucket's global alias)
+#   s3.bulbashenko.com:    S3 API, used by CI (skull renders) with its own key
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: garage-public
+spec:
+  entryPoints: [web]
+  routes:
+    - match: Host(`media.bulbashenko.com`)
+      services: [{ name: garage, port: 3902 }]
+    - match: Host(`s3.bulbashenko.com`)
+      services: [{ name: garage, port: 3900 }]

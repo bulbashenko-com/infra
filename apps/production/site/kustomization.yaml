@@ -1,0 +1,11 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: site
+resources:
+  - namespace.yaml
+  - secret.sops.yaml
+  - site.yaml
+images:
+  # Promote = set this to the SHA that passed staging (image built by bulbashenko-com/site CI).
+  - name: ghcr.io/bulbashenko-com/site
+    newTag: 68c6b0823f53a8d49e12a53c9c5b14cee97641bc
