@@ -10,6 +10,9 @@ spec:
   template:
     metadata:
       labels: { app: site }
+      annotations:
+        # Bump when secret.sops.yaml changes: env from a Secret is read only at pod start.
+        bulbashenko.com/secret-revision: "2"
     spec:
       securityContext:
         runAsNonRoot: true
