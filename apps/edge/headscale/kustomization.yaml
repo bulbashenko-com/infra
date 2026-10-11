@@ -3,7 +3,7 @@ kind: Kustomization
 namespace: headscale
 labels:
   - pairs:
-      bulbashenko.com/layer: app
+      bulbashenko.com/layer: platform
       bulbashenko.com/app: headscale
     includeSelectors: false
     includeTemplates: true

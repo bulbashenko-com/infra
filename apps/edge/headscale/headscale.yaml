@@ -4,6 +4,9 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: headscale-data
+  annotations:
+    # Never let Flux delete the volume (local-path removes the data with the PVC).
+    kustomize.toolkit.fluxcd.io/prune: disabled
 spec:
   accessModes: [ReadWriteOnce]
   storageClassName: local-path
