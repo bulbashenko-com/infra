@@ -1,6 +1,13 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: site
+# Ownership labels (see README: Labels). Selectors are left alone.
+labels:
+  - pairs:
+      bulbashenko.com/layer: app
+      bulbashenko.com/app: site
+    includeSelectors: false
+    includeTemplates: true
 resources:
   - namespace.yaml
   - secret.sops.yaml

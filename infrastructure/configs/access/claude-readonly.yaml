@@ -5,6 +5,9 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: access
+  labels:
+    bulbashenko.com/layer: platform
+    bulbashenko.com/app: access
 ---
 apiVersion: v1
 kind: ServiceAccount
