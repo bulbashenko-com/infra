@@ -28,22 +28,34 @@ resource "hcloud_primary_ip" "core_v6" {
   }
 }
 
+# hel1-edge IP: DNS for hs. (Headscale, DNS-only) and ts. (TeamSpeak) points here; it must survive
+# the server being recreated as a k3s agent.
 resource "hcloud_primary_ip" "edge_v4" {
   assignee_id       = hcloud_server.hel1_edge.id
   assignee_type     = "server"
-  auto_delete       = true
-  delete_protection = false
+  auto_delete       = false
+  delete_protection = true
   name              = "primary_ip-135832240"
   type              = "ipv4"
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
+# hel1-edge IP: DNS for hs. (Headscale, DNS-only) and ts. (TeamSpeak) points here; it must survive
+# the server being recreated as a k3s agent.
 resource "hcloud_primary_ip" "edge_v6" {
   assignee_id       = hcloud_server.hel1_edge.id
   assignee_type     = "server"
-  auto_delete       = true
-  delete_protection = false
+  auto_delete       = false
+  delete_protection = true
   name              = "primary_ip-135832241"
   type              = "ipv6"
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "hcloud_server" "hel1_core" {
