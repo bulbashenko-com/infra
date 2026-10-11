@@ -34,3 +34,15 @@ jobs:
         with:
           tofu_version: 1.13.1
       - run: tofu fmt -check -recursive -diff terraform
+
+  manifests:
+    name: manifests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: kustomize build every overlay Flux reconciles
+        run: |
+          set -euo pipefail
+          for d in infrastructure/controllers infrastructure/configs; do
+            echo "== $d"; kubectl kustomize "$d" > /dev/null
+          done

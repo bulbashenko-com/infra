@@ -1,12 +1,31 @@
-# Cluster-wide components. SOPS-encrypted Secrets below ./infrastructure are decrypted with flux-system/sops-age.
+# Cluster-wide components in two layers:
+#   infrastructure-controllers: operators/Helm releases that bring CRDs (cert-manager, CNPG)
+#   infrastructure:             objects using those CRDs, plus SOPS-encrypted Secrets
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: infrastructure-controllers
+  namespace: flux-system
+spec:
+  interval: 10m
+  path: ./infrastructure/controllers
+  prune: true
+  wait: true
+  timeout: 10m
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
   name: infrastructure
   namespace: flux-system
 spec:
+  dependsOn:
+    - name: infrastructure-controllers
   interval: 10m
-  path: ./infrastructure
+  path: ./infrastructure/configs
   prune: true
   wait: true
   timeout: 5m
