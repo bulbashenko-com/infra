@@ -1,11 +1,19 @@
-# Recipients: owner key (offline copy kept by the owner). The cluster key is added in phase 2.
+# Recipients:
+#   owner   age12qgx04vs6thq39ym6jl5wlgcymjzrdln7w6wyck7px28k4p8fedq09dq5g (offline copy kept by the owner)
+#   hel1    age1c9jlhvq47psz20sl2wu7d2jwstjjylfx769tuumree8hdf5klf2sjluulk (lives in the cluster as flux-system/sops-age; recovery copy in bootstrap/hel1, owner-only)
 creation_rules:
-  # Kubernetes Secrets: encrypt only the payload so diffs stay readable.
-  - path_regex: (clusters|infrastructure|apps)/.*\.sops\.ya?ml$
+  # Recovery copy of the cluster key: owner only.
+  - path_regex: bootstrap/.*\.sops\.ya?ml$
     encrypted_regex: ^(data|stringData)$
     age: >-
       age12qgx04vs6thq39ym6jl5wlgcymjzrdln7w6wyck7px28k4p8fedq09dq5g
-  # Everything else (tofu credentials, misc): encrypt all values.
+  # Kubernetes Secrets reconciled by Flux: owner + cluster. Only the payload is encrypted.
+  - path_regex: (clusters|infrastructure|apps)/.*\.sops\.ya?ml$
+    encrypted_regex: ^(data|stringData)$
+    age: >-
+      age12qgx04vs6thq39ym6jl5wlgcymjzrdln7w6wyck7px28k4p8fedq09dq5g,
+      age1c9jlhvq47psz20sl2wu7d2jwstjjylfx769tuumree8hdf5klf2sjluulk
+  # Everything else (tofu credentials, misc): owner only, all values encrypted.
   - path_regex: .*\.sops\.(ya?ml|json|env)$
     age: >-
       age12qgx04vs6thq39ym6jl5wlgcymjzrdln7w6wyck7px28k4p8fedq09dq5g

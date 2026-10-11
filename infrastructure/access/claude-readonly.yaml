@@ -1,0 +1,35 @@
+# check-sops: payload-free-secret (the token Secret below is filled by Kubernetes)
+# Read-only identity for AI agents: the built-in `view` role (no Secrets, no writes).
+# Flux CRDs aggregate into `view`, so Kustomizations/HelmReleases are visible too.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: access
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: claude-readonly
+  namespace: access
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: claude-readonly-token
+  namespace: access
+  annotations:
+    kubernetes.io/service-account.name: claude-readonly
+type: kubernetes.io/service-account-token
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: claude-readonly-view
+subjects:
+  - kind: ServiceAccount
+    name: claude-readonly
+    namespace: access
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: view
