@@ -11,6 +11,11 @@ metadata:
     fluxcd.controlplane.io/reconcileEvery: "1h"
     fluxcd.controlplane.io/reconcileTimeout: "5m"
 spec:
+  # Ownership labels on everything the operator creates for Flux (README: Labels).
+  commonMetadata:
+    labels:
+      bulbashenko.com/layer: platform
+      bulbashenko.com/app: gitops
   distribution:
     version: "2.9.x"
     registry: "ghcr.io/fluxcd"

@@ -1,12 +1,6 @@
-# Labels for namespaces that Kubernetes, k3s or Flux create themselves. Flux only adds the labels;
+# Labels for namespaces that Kubernetes or k3s create themselves (flux-system is labelled by the
+# FluxInstance, which owns it). Flux only adds the labels;
 # prune is disabled so removing this file can never delete them.
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: flux-system
-  labels: { bulbashenko.com/layer: platform, bulbashenko.com/app: gitops }
-  annotations: { kustomize.toolkit.fluxcd.io/prune: disabled }
----
 apiVersion: v1
 kind: Namespace
 metadata:
