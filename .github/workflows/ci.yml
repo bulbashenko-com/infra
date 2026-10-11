@@ -46,3 +46,13 @@ jobs:
           for d in infrastructure/controllers infrastructure/configs apps/production apps/production/site; do
             echo "== $d"; kubectl kustomize "$d" > /dev/null
           done
+
+  yaml:
+    name: yaml
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: yamllint (syntax + duplicate keys)
+        # yq and kustomize silently accept duplicate keys; files outside kustomize builds
+        # (clusters/hel1) are otherwise never checked before Flux applies them.
+        run: pipx run yamllint==1.37.1 -d '{rules: {key-duplicates: enable}}' .
