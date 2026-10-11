@@ -1,0 +1,15 @@
+# Who may do what in the web UI. The UI impersonates the signed-in user (email + groups from Ory),
+# so ordinary RBAC decides. flux-web-admin (created by the chart): read everything, reconcile/suspend/
+# resume Flux objects, restart workloads, run CronJobs, read logs.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: flux-web-infra-admins
+subjects:
+  - kind: Group
+    name: infra-admins
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: flux-web-admin
+  apiGroup: rbac.authorization.k8s.io

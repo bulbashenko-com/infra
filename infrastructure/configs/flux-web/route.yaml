@@ -1,0 +1,15 @@
+# Flux Operator web UI on the mesh only; it does its own OIDC sign-in (client flux-web in the auth repo).
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: flux-web
+  namespace: flux-system
+spec:
+  entryPoints: [websecure]
+  routes:
+    - match: Host(`flux.int.bulbashenko.com`)
+      middlewares:
+        - { name: mesh-only, namespace: kube-system }
+      services:
+        - { name: flux-operator, port: 9080 }
+  tls: {}
