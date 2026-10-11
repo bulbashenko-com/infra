@@ -9,7 +9,7 @@ spec:
     matchLabels: { app: garage }
   template:
     metadata:
-      labels: { app: garage }
+      labels: { app: garage, bulbashenko.com/layer: app, bulbashenko.com/app: data }
     spec:
       securityContext:
         runAsNonRoot: true
