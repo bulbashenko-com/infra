@@ -41,3 +41,13 @@ _ship-state:
     gh pr merge --auto --merge --delete-branch
     echo "Staying on $b. After the PR merges: git switch main && git pull"
 
+
+# one-time Headscale pre-auth key (tag:core, 30 min) into terraform/secrets.sops.env; asks for your sudo password on hel1-edge
+node-key:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    out=$(ssh -t bulbashenko@62.238.18.202 'sudo docker exec headscale-gml9nuytnpijytqxqkundgva headscale preauthkeys create --tags tag:core --expiration 30m -o json' | tr -d '\r')
+    key=$(printf '%s' "$out" | grep -o '"key": *"[^"]*"' | head -1 | sed 's/.*"\([^"]*\)"$/\1/')
+    [ -n "$key" ] || { echo "no key in headscale output" >&2; exit 1; }
+    printf '%s' "$key" | jq -Rs . | sops set --value-stdin terraform/secrets.sops.env '["TF_VAR_tailscale_authkey"]'
+    echo "pre-auth key stored (expires in 30 min): run just apply now"
