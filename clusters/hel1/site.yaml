@@ -5,6 +5,9 @@ kind: Kustomization
 metadata:
   name: site
   namespace: flux-system
+  labels:
+    bulbashenko.com/layer: app
+    bulbashenko.com/app: site
 spec:
   dependsOn:
     - name: apps

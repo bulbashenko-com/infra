@@ -6,6 +6,9 @@ kind: Kustomization
 metadata:
   name: infrastructure-controllers
   namespace: flux-system
+  labels:
+    bulbashenko.com/layer: platform
+    bulbashenko.com/app: controllers
 spec:
   interval: 10m
   path: ./infrastructure/controllers
@@ -21,6 +24,9 @@ kind: Kustomization
 metadata:
   name: infrastructure
   namespace: flux-system
+  labels:
+    bulbashenko.com/layer: platform
+    bulbashenko.com/app: configs
 spec:
   dependsOn:
     - name: infrastructure-controllers

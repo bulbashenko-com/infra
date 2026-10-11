@@ -6,6 +6,9 @@ kind: GitRepository
 metadata:
   name: auth
   namespace: flux-system
+  labels:
+    bulbashenko.com/layer: app
+    bulbashenko.com/app: auth
 spec:
   interval: 10m
   url: https://github.com/bulbashenko-com/auth.git
@@ -29,6 +32,11 @@ spec:
     name: auth
   path: ./
   targetNamespace: auth
+  # Ownership labels on every object from the auth repo (pod templates excluded).
+  commonMetadata:
+    labels:
+      bulbashenko.com/layer: app
+      bulbashenko.com/app: auth
   # Namespace and the Secret `auth` come from `apps` (apps/production/auth).
   dependsOn:
     - name: apps

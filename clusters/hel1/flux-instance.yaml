@@ -4,6 +4,9 @@ kind: FluxInstance
 metadata:
   name: flux
   namespace: flux-system
+  labels:
+    bulbashenko.com/layer: platform
+    bulbashenko.com/app: gitops
   annotations:
     fluxcd.controlplane.io/reconcileEvery: "1h"
     fluxcd.controlplane.io/reconcileTimeout: "5m"

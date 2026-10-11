@@ -1,0 +1,36 @@
+# Labels for namespaces that Kubernetes, k3s or Flux create themselves. Flux only adds the labels;
+# prune is disabled so removing this file can never delete them.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: flux-system
+  labels: { bulbashenko.com/layer: platform, bulbashenko.com/app: gitops }
+  annotations: { kustomize.toolkit.fluxcd.io/prune: disabled }
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kube-system
+  labels: { bulbashenko.com/layer: system, bulbashenko.com/app: kubernetes }
+  annotations: { kustomize.toolkit.fluxcd.io/prune: disabled }
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: default
+  labels: { bulbashenko.com/layer: system, bulbashenko.com/app: kubernetes }
+  annotations: { kustomize.toolkit.fluxcd.io/prune: disabled }
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kube-public
+  labels: { bulbashenko.com/layer: system, bulbashenko.com/app: kubernetes }
+  annotations: { kustomize.toolkit.fluxcd.io/prune: disabled }
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kube-node-lease
+  labels: { bulbashenko.com/layer: system, bulbashenko.com/app: kubernetes }
+  annotations: { kustomize.toolkit.fluxcd.io/prune: disabled }

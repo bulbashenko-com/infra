@@ -1,6 +1,12 @@
 # Namespace and Secret live here; the workloads come from the auth repo (clusters/hel1/auth.yaml).
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
+# Ownership labels (see README: Labels). Selectors are left alone.
+labels:
+  - pairs:
+      bulbashenko.com/layer: app
+      bulbashenko.com/app: auth
+    includeSelectors: false
 resources:
   - namespace.yaml
   - secret.sops.yaml

@@ -9,4 +9,5 @@
 - Secrets: edit with `sops <file>`; never print decrypted values, never write decrypted files into the repo, never put secret values in commit messages, PR bodies or chat.
 - Prefer `just` recipes over long ad-hoc commands; they print compact output. Add a recipe instead of repeating a long command.
 - Before changing a third-party component, read its current docs for the pinned version.
+- Every new namespace and kustomization directory gets the ownership labels `bulbashenko.com/layer` and `bulbashenko.com/app` (README: Labels).
 - Commit style: short imperative subject, explain why in the body.

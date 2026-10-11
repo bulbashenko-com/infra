@@ -38,3 +38,16 @@ scripts/             helpers used by CI and the justfile
 ```
 
 Daily commands: `just --list`.
+
+## Labels
+
+Every namespace and every object we manage carries two labels, so "mine" and "the machinery" are easy to tell apart (Headlamp, k9s, `kubectl get -l`).
+
+| Label | Values |
+|---|---|
+| `bulbashenko.com/layer` | `app`: our services (site, auth, data). `platform`: what we install for them (tunnel, certs, Postgres operator, ingress, GitOps UI, access). `system`: Kubernetes/k3s internals, not touched. |
+| `bulbashenko.com/app` | `site`, `auth`, `data`, `tunnel`, `certs`, `postgres-operator`, `ingress`, `gitops`, `access`, `controllers`, `configs`, `kubernetes` |
+
+Where they come from: Namespace manifests (explicit), `labels:` in each directory's `kustomization.yaml` (`includeSelectors: false`; pod templates included for apps), Flux `commonMetadata` for the auth repo, and `infrastructure/configs/system-namespaces.yaml` for namespaces Kubernetes or Flux create themselves (prune disabled).
+
+Examples: `kubectl get pods -A -l bulbashenko.com/layer=app`, in k9s `:pods` then `/-l bulbashenko.com/layer=app`.

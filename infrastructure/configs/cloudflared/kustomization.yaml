@@ -1,5 +1,12 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
+# Ownership labels (see README: Labels). Selectors are left alone.
+labels:
+  - pairs:
+      bulbashenko.com/layer: platform
+      bulbashenko.com/app: tunnel
+    includeSelectors: false
+    includeTemplates: true
 resources:
   - namespace.yaml
   - tunnel-token.sops.yaml
