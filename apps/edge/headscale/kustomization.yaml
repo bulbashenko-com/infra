@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: headscale
+labels:
+  - pairs:
+      bulbashenko.com/layer: app
+      bulbashenko.com/app: headscale
+    includeSelectors: false
+    includeTemplates: true
+resources:
+  - namespace.yaml
+  - secret.sops.yaml
+  - headscale.yaml
+configMapGenerator:
+  - name: headscale-config
+    files:
+      - config.yaml
+      - policy.hujson
+  - name: restore-once
+    files:
+      - restore-once.sh
