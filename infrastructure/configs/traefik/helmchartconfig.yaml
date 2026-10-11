@@ -21,6 +21,11 @@ spec:
     ports:
       web:
         hostPort: 80
+        # Public traffic arrives from cloudflared pods (pod CIDR): keep its X-Forwarded-Proto/Host
+        # (https, the real hostname) so apps build correct absolute URLs and secure cookies.
+        forwardedHeaders:
+          trustedIPs:
+            - 10.42.0.0/16
       websecure:
         hostPort: 443
     # One pod per node owns the host ports, so replace before starting the new one.
