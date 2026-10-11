@@ -1,0 +1,68 @@
+# Shared Postgres for the site and Ory. Same role names and passwords as on Coolify, so apps only
+# change the host to pg-rw.data.svc. Data arrives with the one-shot migration Job at cutover.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: pg
+spec:
+  instances: 1
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.7-standard-trixie
+  # Needed by the migration Job (pg_restore of objects owned by several roles); disable after cutover.
+  enableSuperuserAccess: true
+  storage:
+    size: 10Gi
+    storageClass: local-path
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits: { memory: 768Mi }
+  postgresql:
+    parameters:
+      shared_buffers: 128MB
+      max_connections: "100"
+  bootstrap:
+    initdb:
+      database: bulbashenko
+      owner: bulbashenko
+      secret:
+        name: pg-role-bulbashenko
+  managed:
+    roles:
+      - name: kratos
+        ensure: present
+        login: true
+        passwordSecret: { name: pg-role-kratos }
+      - name: hydra
+        ensure: present
+        login: true
+        passwordSecret: { name: pg-role-hydra }
+      - name: keto
+        ensure: present
+        login: true
+        passwordSecret: { name: pg-role-keto }
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: kratos
+spec:
+  cluster: { name: pg }
+  name: kratos
+  owner: kratos
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: hydra
+spec:
+  cluster: { name: pg }
+  name: hydra
+  owner: hydra
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: keto
+spec:
+  cluster: { name: pg }
+  name: keto
+  owner: keto

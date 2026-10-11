@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: Secret
+metadata:
+    name: pg-role-bulbashenko
+    namespace: data
+    labels:
+        cnpg.io/reload: "true"
+type: kubernetes.io/basic-auth
+stringData:
+    username: ENC[AES256_GCM,data:drJf01VxLpZKAtU=,iv:nho3Hr4MiiOFVQ1+orIn9GOOjQbCz/+BxYwy0RJui9M=,tag:4t8g0PNKT8SH1HMpvAWQHg==,type:str]
+    password: ENC[AES256_GCM,data:YyVya44Vhth+xx386bvEUUhM8+pfuyoHCDq9G+JORtQFfH76z4I/xF4VawwZG77W3Bh9xvC2sthHTA7pQdWhqQ==,iv:xKR6WbWJvt8pf20GeDC1upnRAh4257cEVb2JnfbyRcY=,tag:DjLp0YYP/QObEsajMSOqog==,type:str]
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBDUFNpWDUrM0I2TUJ3NlIz
+            Q3hRV0d5SGs5ci9iWHRtRnM4dHhZaGxvMjJzCkNIWTRKMXlaS0tSR3Mza3hud2kw
+            VDFNRzg0YmhCamluTitZcFBjcUYybW8KLS0tIDR1WnRHbm95Q2Q3ZjFqNHBVaU5q
+            V2kzakNXRHZLV1JyMERBTVoyb0ovSmsK/R3T0d5shqBfLJiWX9nw8D45WC9+12Ki
+            GcZlFf0dMVKwTBfKN6siwLRmjxWd0OxWhYBcUCjvUHp3bDqyU7D+Rg==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age12qgx04vs6thq39ym6jl5wlgcymjzrdln7w6wyck7px28k4p8fedq09dq5g
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBEdWpabEhid1JBeVRPcy9V
+            QVlBQVJSZFN4clJOaUtNbU9lOENLcTBRV2o4CnZqRHl3eTZJYXZ0TzJndHo4NGxm
+            REpkREM0OFF2ODRBUU1iVWJVay94THMKLS0tIEc1NFVadnNHNmUwWHpxODNXWjBW
+            MUF0WXFsQ0g1QWY0TjBCemV0dGNwY0kK1Y2mWm84M444Xw0/aUU6s4yfI2l6i33i
+            V/cvS4/WrX0R1kd7olIkBuGCSgpClt2ONAmiU1N6zmn1TObGEb9DGA==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age1c9jlhvq47psz20sl2wu7d2jwstjjylfx769tuumree8hdf5klf2sjluulk
+    encrypted_regex: ^(data|stringData)$
+    lastmodified: "2026-10-11T19:48:59Z"
+    mac: ENC[AES256_GCM,data:j33GgnbXRxRE4MqELRZ1Q2/Hv2MFt77VYfSBrpiCjbKwtg5SLlsXLFrqpV1QvlTYYYKd5W3Z7njE22o63qJacdoUs6fuscwUuPBMvGSJyMCOma3gwB7Y0xN2CpuFhkYUW7pzsJ5Jx+/uw4p2UGYNeByaOurNmLKOc4pY2EuQBlE=,iv:DrxxqwRmUGl3EFvn5U8nIwPK2LGsLAYjtqfaBIeKWUs=,tag:yJAydMnl8GmN3lTVBurlkA==,type:str]
+    version: 3.13.3

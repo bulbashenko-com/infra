@@ -1,0 +1,22 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: data
+resources:
+  - namespace.yaml
+  - pg-role-bulbashenko.sops.yaml
+  - pg-role-kratos.sops.yaml
+  - pg-role-hydra.sops.yaml
+  - pg-role-keto.sops.yaml
+  - postgres.yaml
+  - garage-secret.sops.yaml
+  - garage.yaml
+  - garage-bootstrap.yaml
+configMapGenerator:
+  - name: garage-config
+    files:
+      - garage.toml
+  - name: garage-bootstrap
+    files:
+      - garage-bootstrap.sh
+generatorOptions:
+  disableNameSuffixHash: false
