@@ -1,5 +1,9 @@
 # Overrides for k3s' bundled Traefik (3.7). Nodes expose 80/443 only on the mesh and hel1-net
-# (Hetzner firewall); public web arrives through cloudflared inside the cluster.
+# (Hetzner firewall); public web arrives through cloudflared inside the cluster (ClusterIP).
+#
+# Traefik binds 80/443 with hostPort instead of k3s ServiceLB: klipper-lb SNATs to its pod IP even with
+# externalTrafficPolicy Local, so Traefik never saw the real mesh address and ipAllowList (mesh-only)
+# refused everyone. hostPort keeps the client address.
 apiVersion: helm.cattle.io/v1
 kind: HelmChartConfig
 metadata:
@@ -11,9 +15,18 @@ spec:
       access:
         enabled: true
     service:
-      spec:
-        # Keep the client address (mesh IP) so ipAllowList can see it.
-        externalTrafficPolicy: Local
+      type: ClusterIP
+    ports:
+      web:
+        hostPort: 80
+      websecure:
+        hostPort: 443
+    # One pod per node owns the host ports, so replace before starting the new one.
+    updateStrategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxUnavailable: 1
+        maxSurge: 0
     providers:
       kubernetesCRD:
         allowCrossNamespace: true
