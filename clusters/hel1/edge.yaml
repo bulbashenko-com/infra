@@ -1,5 +1,4 @@
 # Workloads that own hel1-edge's public IP (Headscale, TeamSpeak). Data came from the restore bucket
-# the cluster as an agent with node.bulbashenko.com/role=edge and the restore archives are in Garage.
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
