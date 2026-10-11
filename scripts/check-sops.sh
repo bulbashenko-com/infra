@@ -11,6 +11,7 @@ if [ ${#files[@]} -eq 0 ]; then
 fi
 for f in "${files[@]}"; do
   [ -f "$f" ] || continue
+  [ "$(basename "$f")" = .sops.yaml ] && continue  # SOPS config, not a secret
   case "$f" in
     *.sops.yaml|*.sops.yml|*.sops.json|*.sops.env)
       if ! grep -qE '(^sops:|"sops":|^sops_version=)' "$f"; then

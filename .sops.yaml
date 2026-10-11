@@ -1,0 +1,11 @@
+# Recipients: owner key (offline copy kept by the owner). The cluster key is added in phase 2.
+creation_rules:
+  # Kubernetes Secrets: encrypt only the payload so diffs stay readable.
+  - path_regex: (clusters|infrastructure|apps)/.*\.sops\.ya?ml$
+    encrypted_regex: ^(data|stringData)$
+    age: >-
+      age12qgx04vs6thq39ym6jl5wlgcymjzrdln7w6wyck7px28k4p8fedq09dq5g
+  # Everything else (tofu credentials, misc): encrypt all values.
+  - path_regex: .*\.sops\.(ya?ml|json|env)$
+    age: >-
+      age12qgx04vs6thq39ym6jl5wlgcymjzrdln7w6wyck7px28k4p8fedq09dq5g
