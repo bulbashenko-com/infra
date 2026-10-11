@@ -15,7 +15,9 @@ spec:
       access:
         enabled: true
     service:
-      type: ClusterIP
+      # Chart 40.x: the type lives under service.spec (a top-level service.type is ignored).
+      spec:
+        type: ClusterIP
     ports:
       web:
         hostPort: 80
