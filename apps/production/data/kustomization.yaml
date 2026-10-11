@@ -7,7 +7,8 @@ labels:
       bulbashenko.com/layer: app
       bulbashenko.com/app: data
     includeSelectors: false
-    includeTemplates: true
+    # No includeTemplates here: it would also label the StatefulSet volumeClaimTemplates, which are
+    # immutable. Pod templates in this directory carry the labels explicitly.
 resources:
   - namespace.yaml
   - pg-role-bulbashenko.sops.yaml
