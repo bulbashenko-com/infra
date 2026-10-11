@@ -3,7 +3,7 @@
 # (comment "managed by Stalwart") and are deliberately NOT managed here.
 
 resource "cloudflare_dns_record" "apex" {
-  comment = "[web] origin: Hetzner CX22. The only IP for proxied hosts"
+  comment = "[web] Cloudflare Tunnel hel1 -> k3s Traefik"
   content = local.tunnel_cname
   name    = "bulbashenko.com"
   proxied = true
