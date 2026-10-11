@@ -53,11 +53,11 @@ import {
   id = "abb0bea137c9c120a465f8a609c98e02/f59b2ffd257dbceda7ea30e146d091b9"
 }
 import {
-  to = cloudflare_dns_record.autoconfig_cname
+  to = cloudflare_dns_record.autoconfig
   id = "abb0bea137c9c120a465f8a609c98e02/947cd54716d1997584f854961a10e5e9"
 }
 import {
-  to = cloudflare_dns_record.autodiscover_cname
+  to = cloudflare_dns_record.autodiscover
   id = "abb0bea137c9c120a465f8a609c98e02/5ac30afb2c0296d395b810b2e071cb10"
 }
 import {
@@ -65,7 +65,7 @@ import {
   id = "abb0bea137c9c120a465f8a609c98e02/2616dc7140901129d097e74d7ab28742"
 }
 import {
-  to = cloudflare_dns_record.coolify_cname
+  to = cloudflare_dns_record.coolify
   id = "abb0bea137c9c120a465f8a609c98e02/cdbcf25c8a31f502faed0a006a57f59f"
 }
 import {
