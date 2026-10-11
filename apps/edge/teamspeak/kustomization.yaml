@@ -1,3 +1,4 @@
+# Namespace and Secret only; the workload comes from bulbashenko-com/teamspeak (clusters/hel1/teamspeak.yaml).
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: teamspeak
@@ -6,12 +7,6 @@ labels:
       bulbashenko.com/layer: app
       bulbashenko.com/app: teamspeak
     includeSelectors: false
-    includeTemplates: true
 resources:
   - namespace.yaml
   - secret.sops.yaml
-  - teamspeak.yaml
-configMapGenerator:
-  - name: restore-once
-    files:
-      - restore-once.sh

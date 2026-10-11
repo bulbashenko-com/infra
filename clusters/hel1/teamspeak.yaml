@@ -1,0 +1,44 @@
+# TeamSpeak 6 from bulbashenko-com/teamspeak, pinned to one commit. Namespace and Secret come from
+# the edge Kustomization (apps/edge/teamspeak). Promote = change the commit below.
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: teamspeak
+  namespace: flux-system
+  labels:
+    bulbashenko.com/layer: app
+    bulbashenko.com/app: teamspeak
+spec:
+  interval: 10m
+  url: https://github.com/bulbashenko-com/teamspeak.git
+  ref:
+    commit: 9afbfcc097a9c9256706aca9d024954327a47d1b
+  ignore: |
+    /*
+    !/kustomization.yaml
+    !/deploy/k8s/
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: teamspeak
+  namespace: flux-system
+  labels:
+    bulbashenko.com/layer: app
+    bulbashenko.com/app: teamspeak
+spec:
+  dependsOn:
+    - name: edge
+  interval: 10m
+  sourceRef:
+    kind: GitRepository
+    name: teamspeak
+  path: ./
+  targetNamespace: teamspeak
+  prune: true
+  wait: true
+  timeout: 5m
+  commonMetadata:
+    labels:
+      bulbashenko.com/layer: app
+      bulbashenko.com/app: teamspeak
