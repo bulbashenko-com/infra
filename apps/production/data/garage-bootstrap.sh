@@ -3,12 +3,13 @@
 # Safe to re-run; it only creates what is missing.
 set -eu
 apk add --no-cache curl jq >/dev/null
-A="http://garage:3903"
+# Not-ready-tolerant Service: /health is 503 until the layout exists, which is what this script creates.
+A="http://garage-admin:3903"
 H="Authorization: Bearer ${GARAGE_ADMIN_TOKEN}"
 get()  { curl -fsS -H "$H" "$A$1"; }
 post() { curl -fsS -H "$H" -H 'Content-Type: application/json' -X POST "$A$1" -d "$2"; }
 
-until curl -fsS "$A/health" >/dev/null 2>&1; do echo "waiting for garage"; sleep 3; done
+until get /v2/GetClusterStatus >/dev/null 2>&1; do echo "waiting for garage admin API"; sleep 3; done
 
 # Layout: assign this single node once (zone hel1, 10 GiB).
 if [ "$(get /v2/GetClusterLayout | jq '.roles | length')" = 0 ]; then

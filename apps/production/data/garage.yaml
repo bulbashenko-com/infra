@@ -67,3 +67,14 @@ spec:
     - { name: s3, port: 3900, targetPort: s3 }
     - { name: web, port: 3902, targetPort: web }
     - { name: admin, port: 3903, targetPort: admin }
+---
+# Admin API for the bootstrap Job; also routes to a not-ready pod (no layout yet means /health = 503).
+apiVersion: v1
+kind: Service
+metadata:
+  name: garage-admin
+spec:
+  selector: { app: garage }
+  publishNotReadyAddresses: true
+  ports:
+    - { name: admin, port: 3903, targetPort: admin }
