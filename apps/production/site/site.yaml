@@ -13,6 +13,9 @@ spec:
     spec:
       securityContext:
         runAsNonRoot: true
+        # The image user is `node` (uid 1000); the kubelet needs the numeric id.
+        runAsUser: 1000
+        runAsGroup: 1000
         seccompProfile: { type: RuntimeDefault }
       containers:
         - name: site
