@@ -22,33 +22,33 @@ resource "cloudflare_dns_record" "auth_cname" {
   zone_id = var.cloudflare_zone_id
 }
 
-resource "cloudflare_dns_record" "autoconfig_cname" {
+resource "cloudflare_dns_record" "autoconfig" {
   comment = "[mail] Thunderbird autoconfig, routed to Stalwart"
-  content = "bulbashenko.com"
+  content = hcloud_primary_ip.core_v4.ip_address
   name    = "autoconfig.bulbashenko.com"
   proxied = true
   ttl     = 1
-  type    = "CNAME"
+  type    = "A"
   zone_id = var.cloudflare_zone_id
 }
 
-resource "cloudflare_dns_record" "autodiscover_cname" {
+resource "cloudflare_dns_record" "autodiscover" {
   comment = "[mail] Outlook autodiscover, routed to Stalwart"
-  content = "bulbashenko.com"
+  content = hcloud_primary_ip.core_v4.ip_address
   name    = "autodiscover.bulbashenko.com"
   proxied = true
   ttl     = 1
-  type    = "CNAME"
+  type    = "A"
   zone_id = var.cloudflare_zone_id
 }
 
-resource "cloudflare_dns_record" "coolify_cname" {
+resource "cloudflare_dns_record" "coolify" {
   comment = "[admin] Coolify dashboard, behind Access"
-  content = "bulbashenko.com"
+  content = hcloud_primary_ip.core_v4.ip_address
   name    = "coolify.bulbashenko.com"
   proxied = true
   ttl     = 1
-  type    = "CNAME"
+  type    = "A"
   zone_id = var.cloudflare_zone_id
 }
 
@@ -130,4 +130,19 @@ resource "cloudflare_dns_record" "www_cname" {
   ttl     = 1
   type    = "CNAME"
   zone_id = var.cloudflare_zone_id
+}
+
+# 2026-10: these stay on core (Coolify/Stalwart) when the apex moves to the tunnel, so they get
+# their own A record instead of a CNAME to the apex.
+moved {
+  from = cloudflare_dns_record.autoconfig_cname
+  to   = cloudflare_dns_record.autoconfig
+}
+moved {
+  from = cloudflare_dns_record.autodiscover_cname
+  to   = cloudflare_dns_record.autodiscover
+}
+moved {
+  from = cloudflare_dns_record.coolify_cname
+  to   = cloudflare_dns_record.coolify
 }
