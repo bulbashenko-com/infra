@@ -2,7 +2,10 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: data
 # Restore drill: off-site copy (Storage Box) -> Garage bucket `drill` -> throw-away CNPG cluster pg-drill.
-# Removed again once the drill has passed.
+# Not deployed by default. A drill is two PRs (the recovery must not start before the fetch is done):
+#   1. add `drill` to apps/production/kustomization.yaml -> Job drill-fetch;
+#   2. add restore.yaml below -> pg-drill + Job drill-verify (`kubectl -n data logs job/drill-verify`).
+# Then revert both; Flux deletes pg-drill and its volume. Last passed: 2026-10-12.
 labels:
   - pairs:
       bulbashenko.com/layer: app
@@ -11,7 +14,6 @@ labels:
     includeTemplates: true
 resources:
   - fetch.yaml
-  - restore.yaml
 configMapGenerator:
   - name: drill-fetch
     files:

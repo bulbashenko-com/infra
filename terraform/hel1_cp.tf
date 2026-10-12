@@ -37,7 +37,7 @@ resource "hcloud_server" "hel1_cp" {
   server_type  = "cx23"
   image        = "ubuntu-24.04"
   location     = var.location
-  backups      = true
+  backups      = false
   ssh_keys     = [hcloud_ssh_key.owner.id]
   firewall_ids = [hcloud_firewall.hel1_cp.id]
   labels = {
