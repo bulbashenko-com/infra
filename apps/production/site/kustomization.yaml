@@ -15,4 +15,4 @@ resources:
 images:
   # Changed by deploy PRs (scripts/promote.sh): the image the site CI built for that commit.
   - name: ghcr.io/bulbashenko-com/site
-    newTag: 690408839545c00384c0c7a482b2904fe17a2c5c
+    newTag: d9e40ce8645b517df0c7078e6d61472235ae7f6e
