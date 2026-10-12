@@ -1,0 +1,37 @@
+# Replicated Garage: three nodes, one per k8s node, every object on all three (survives losing any one node).
+# Peers find each other through GarageNode objects (kubernetes_discovery). Secrets come from env.
+metadata_dir = "/var/lib/garage/meta"
+data_dir = "/var/lib/garage/data"
+db_engine = "lmdb"
+
+replication_factor = 3
+consistency_mode = "consistent"
+
+compression_level = 1
+block_size = "1M"
+
+rpc_bind_addr = "[::]:3901"
+rpc_secret_file = "env:GARAGE_RPC_SECRET"
+bootstrap_peers = []
+# Advertise the pod IP (it changes on restart; the GarageNode object follows it).
+rpc_public_addr_subnet = "10.42.0.0/16"
+
+[kubernetes_discovery]
+namespace = "data"
+service_name = "garage-ha"
+skip_crd = true
+
+[s3_api]
+s3_region = "garage"
+api_bind_addr = "[::]:3900"
+root_domain = ".s3.garage.localhost"
+
+[s3_web]
+# media.bulbashenko.com is served because it is a global alias of the media bucket.
+bind_addr = "[::]:3902"
+root_domain = ".web.garage.localhost"
+
+[admin]
+api_bind_addr = "[::]:3903"
+admin_token_file = "env:GARAGE_ADMIN_TOKEN"
+metrics_token_file = "env:GARAGE_METRICS_TOKEN"

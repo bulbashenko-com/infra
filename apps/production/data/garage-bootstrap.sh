@@ -4,17 +4,20 @@
 set -eu
 apk add --no-cache curl jq >/dev/null
 # Not-ready-tolerant Service: /health is 503 until the layout exists, which is what this script creates.
-A="http://garage-admin:3903"
+A="${GARAGE_ADMIN_URL:-http://garage-admin:3903}"
+NODES="${GARAGE_NODES:-1}"
 H="Authorization: Bearer ${GARAGE_ADMIN_TOKEN}"
 get()  { curl -fsS -H "$H" "$A$1"; }
 post() { curl -fsS -H "$H" -H 'Content-Type: application/json' -X POST "$A$1" -d "$2"; }
 
 until get /v2/GetClusterStatus >/dev/null 2>&1; do echo "waiting for garage admin API"; sleep 3; done
 
-# Layout: assign this single node once (zone hel1, 10 GiB).
+# Layout, once: wait for all $NODES nodes to see each other, then give each a role (zone hel1, 10 GiB).
+up() { get /v2/GetClusterStatus | jq '[.nodes[] | select(.isUp)] | length'; }
+until [ "$(up)" -ge "$NODES" ]; do echo "waiting for $NODES garage nodes ($(up) up)"; sleep 3; done
 if [ "$(get /v2/GetClusterLayout | jq '.roles | length')" = 0 ]; then
-  node=$(get /v2/GetClusterStatus | jq -r '.nodes[0].id')
-  post /v2/UpdateClusterLayout "{\"roles\":[{\"id\":\"$node\",\"zone\":\"hel1\",\"capacity\":10737418240,\"tags\":[]}]}" >/dev/null
+  roles=$(get /v2/GetClusterStatus | jq -c '[.nodes[] | select(.isUp) | {id, zone: "hel1", capacity: 10737418240, tags: []}]')
+  post /v2/UpdateClusterLayout "{\"roles\":$roles}" >/dev/null
   v=$(get /v2/GetClusterLayout | jq '.version + 1')
   post /v2/ApplyClusterLayout "{\"version\":$v}" >/dev/null
   echo "layout applied (v$v)"
