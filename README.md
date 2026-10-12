@@ -56,7 +56,7 @@ Where they come from: Namespace manifests (explicit), `labels:` in each director
 
 Examples: `kubectl get pods -A -l bulbashenko.com/layer=app`, in k9s `:pods` then `/-l bulbashenko.com/layer=app`.
 kube-state-metrics exports both labels (`label_bulbashenko_com_layer`, `label_bulbashenko_com_app` on `kube_namespace_labels`
-and `kube_pod_labels`); Grafana's dashboard "Cluster by layer" groups CPU, memory, restarts and readiness by them.
+and `kube_pod_labels`); the Grafana home dashboard "Главное" groups CPU and memory by them.
 
 ## Monitoring
 
@@ -67,10 +67,13 @@ Alertmanager, node-exporter, kube-state-metrics, Grafana).
 - Grafana: https://grafana.int.bulbashenko.com (mesh only, sign-in through Ory client `grafana`; only `infra-admins` get in,
   as Grafana server admins). No PVC: dashboards and datasources come from git, upstream dashboards and alert rules from the
   chart's sync Job. Break-glass: `/login?disableAutoLogin` with the local admin from the Secret `grafana`.
-- Our dashboards: JSON files in `infrastructure/configs/monitoring/dashboards/` (folder "bulbashenko").
+- "Главное" (`infrastructure/configs/monitoring/dashboards/main.json`, Grafana's home page): everything on one page:
+  status, backups and data, nodes, layers and apps, traffic, mail, GitOps, scrape targets. Upstream dashboards (Node
+  Exporter Full, Kubernetes views, VictoriaMetrics) stay for drilling down.
 - Scrape targets: platform components in `infrastructure/configs/monitoring/scrapes.yaml`; app targets next to the app
   (`apps/production/data/scrapes.yaml` for CNPG and Garage, `apps/mail/scrape.yaml` for Stalwart).
-- Alerts: Alertmanager has no receiver yet (Telegram: infra#75).
+- Alerts: upstream rules (synced by the chart) plus ours in `infrastructure/configs/monitoring/rules.yaml` (backups,
+  WAL, replication, Garage, tunnel, certificates, 5xx, OOM kills, Flux). Alertmanager has no receiver yet (Telegram: infra#75).
 
 ## Deploy PRs
 

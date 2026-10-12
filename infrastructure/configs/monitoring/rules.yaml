@@ -1,0 +1,151 @@
+# Our alerts: what the upstream rules (synced by the chart) do not cover and what breaks quietly. Memory, disks,
+# crash loops, failed Jobs, PVCs and down targets are already alerted upstream. Thresholds match the "Главное"
+# dashboard. severity: critical = act now, warning = look today. Telegram routing is infra#75.
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMRule
+metadata:
+  name: bulbashenko
+  namespace: monitoring
+spec:
+  groups:
+    - name: bulbashenko.backups
+      rules:
+        - alert: PostgresBackupTooOld
+          expr: time() - max(barman_cloud_cloudnative_pg_io_last_available_backup_timestamp) > 26 * 3600
+          for: 15m
+          labels: { severity: critical }
+          annotations:
+            summary: "Бэкапу Postgres больше 26 часов"
+            description: "Последний успешный base backup кластера pg был {{ $value | humanizeDuration }} назад. Проверь ScheduledBackup pg-daily и Backup в namespace data."
+        - alert: PostgresBackupMetricMissing
+          expr: absent(barman_cloud_cloudnative_pg_io_last_available_backup_timestamp)
+          for: 1h
+          labels: { severity: warning }
+          annotations:
+            summary: "Нет метрики времени бэкапа Postgres"
+            description: "Плагин barman-cloud не отдаёт last_available_backup_timestamp: возраст бэкапа не контролируется."
+        - alert: PostgresWALArchivingStalled
+          expr: max(cnpg_pg_stat_archiver_seconds_since_last_archival * on (pod) group_left () (cnpg_pg_replication_in_recovery == 0)) > 900
+          for: 10m
+          labels: { severity: critical }
+          annotations:
+            summary: "WAL не архивируется больше 15 минут"
+            description: "Primary не отправлял WAL в Garage {{ $value | humanizeDuration }}. Восстановление на момент времени под угрозой."
+        - alert: PostgresWALArchivingFailing
+          expr: sum(increase(cnpg_pg_stat_archiver_failed_count[15m])) > 0
+          for: 15m
+          labels: { severity: warning }
+          annotations:
+            summary: "Ошибки архивации WAL"
+            description: "За 15 минут были неудачные попытки архивации WAL. Логи: контейнер plugin-barman-cloud в подах pg-*."
+        - alert: CronJobBackupStale
+          expr: time() - kube_cronjob_status_last_successful_time{cronjob=~"offsite-backup|volume-backup"} > 26 * 3600
+          for: 15m
+          labels: { severity: critical }
+          annotations:
+            summary: "{{ $labels.namespace }}/{{ $labels.cronjob }}: нет успешного запуска 26 часов"
+            description: "Последний успешный запуск был {{ $value | humanizeDuration }} назад."
+
+    - name: bulbashenko.data
+      rules:
+        - alert: PostgresInstanceDown
+          expr: cnpg_collector_up == 0
+          for: 5m
+          labels: { severity: critical }
+          annotations:
+            summary: "Postgres {{ $labels.pod }} не работает"
+            description: "Экспортер CNPG на {{ $labels.pod }} сообщает, что PostgreSQL недоступен."
+        - alert: PostgresNoStreamingReplica
+          expr: max(cnpg_pg_replication_streaming_replicas * on (pod) group_left () (cnpg_pg_replication_in_recovery == 0)) < 1
+          for: 10m
+          labels: { severity: warning }
+          annotations:
+            summary: "У Postgres нет стримящей реплики"
+            description: "Primary работает без реплики: при потере его узла данные восстанавливаются только из бэкапа."
+        - alert: PostgresReplicationLagHigh
+          expr: max by (pod) (cnpg_pg_replication_lag) > 300
+          for: 10m
+          labels: { severity: warning }
+          annotations:
+            summary: "Реплика {{ $labels.pod }} отстаёт на {{ $value | humanizeDuration }}"
+            description: "Отставание реплики больше 5 минут."
+        - alert: GarageUnhealthy
+          expr: min(cluster_healthy) < 1
+          for: 5m
+          labels: { severity: critical }
+          annotations:
+            summary: "Garage нездоров"
+            description: "cluster_healthy = 0: часть узлов или разделов недоступна. Медиа сайта и бэкапы CNPG под угрозой."
+        - alert: GarageNodeDisconnected
+          expr: min(cluster_connected_nodes) < 3
+          for: 10m
+          labels: { severity: warning }
+          annotations:
+            summary: "Garage: на связи {{ $value }} из 3 узлов"
+            description: "RF3 держится, но запаса больше нет."
+
+    - name: bulbashenko.edge
+      rules:
+        - alert: CloudflareTunnelDown
+          expr: sum(cloudflared_tunnel_ha_connections) < 1 or absent(cloudflared_tunnel_ha_connections)
+          for: 3m
+          labels: { severity: critical }
+          annotations:
+            summary: "Туннель Cloudflare без соединений"
+            description: "Ни один под cloudflared не держит соединение: bulbashenko.com, auth, media и s3 недоступны снаружи."
+        - alert: CloudflaredPodNoConnections
+          expr: max by (pod) (cloudflared_tunnel_ha_connections) < 1
+          for: 10m
+          labels: { severity: warning }
+          annotations:
+            summary: "{{ $labels.pod }} без соединений с Cloudflare"
+            description: "Туннель работает на оставшемся поде, резерва нет."
+        - alert: CertificateExpiringSoon
+          expr: (certmanager_certificate_expiration_timestamp_seconds - time()) / 86400 < 14
+          for: 1h
+          labels: { severity: warning }
+          annotations:
+            summary: "Сертификат {{ $labels.namespace }}/{{ $labels.name }} истекает через {{ $value | humanize }} дн"
+            description: "cert-manager продлевает за 30 дней, значит продление не проходит. kubectl describe certificate."
+        - alert: CertificateExpiringCritical
+          expr: (certmanager_certificate_expiration_timestamp_seconds - time()) / 86400 < 3
+          for: 10m
+          labels: { severity: critical }
+          annotations:
+            summary: "Сертификат {{ $labels.namespace }}/{{ $labels.name }} истекает через {{ $value | humanize }} дн"
+            description: "Меньше 3 дней до истечения."
+        - alert: CertificateNotReady
+          expr: certmanager_certificate_ready_status{condition="False"} == 1
+          for: 30m
+          labels: { severity: warning }
+          annotations:
+            summary: "Сертификат {{ $labels.namespace }}/{{ $labels.name }} не Ready"
+            description: "Certificate не в состоянии Ready 30 минут."
+        - alert: TraefikHigh5xxRate
+          expr: |
+            sum by (service) (rate(traefik_service_requests_total{code=~"5.."}[5m]))
+              / sum by (service) (rate(traefik_service_requests_total[5m])) > 0.05
+            and sum by (service) (rate(traefik_service_requests_total{code=~"5.."}[5m])) > 0.05
+          for: 10m
+          labels: { severity: warning }
+          annotations:
+            summary: "{{ $labels.service }}: {{ $value | humanizePercentage }} ответов 5xx"
+            description: "Больше 5% ответов сервиса — ошибки сервера."
+
+    - name: bulbashenko.workloads
+      rules:
+        - alert: ContainerOOMKilled
+          expr: |
+            increase(kube_pod_container_status_restarts_total[15m]) > 0
+            and on (namespace, pod, container) kube_pod_container_status_last_terminated_reason{reason="OOMKilled"} == 1
+          labels: { severity: warning }
+          annotations:
+            summary: "{{ $labels.namespace }}/{{ $labels.pod }} ({{ $labels.container }}) убит по памяти"
+            description: "Контейнер упёрся в memory limit и был перезапущен. Подними limit или найди утечку."
+        - alert: FluxResourceNotReady
+          expr: flux_resource_info{ready="False", suspended!="true"} == 1
+          for: 15m
+          labels: { severity: warning }
+          annotations:
+            summary: "Flux: {{ $labels.kind }} {{ $labels.exported_namespace }}/{{ $labels.name }} не Ready"
+            description: "Изменение из git не применилось 15 минут. flux.int.bulbashenko.com или flux get all -A."
