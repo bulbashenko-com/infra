@@ -65,10 +65,6 @@ import {
   id = "abb0bea137c9c120a465f8a609c98e02/2616dc7140901129d097e74d7ab28742"
 }
 import {
-  to = cloudflare_dns_record.coolify
-  id = "abb0bea137c9c120a465f8a609c98e02/cdbcf25c8a31f502faed0a006a57f59f"
-}
-import {
   to = cloudflare_dns_record.dmarc_txt
   id = "abb0bea137c9c120a465f8a609c98e02/af46f9e284d9477708a188e2fb0e0ebd"
 }
