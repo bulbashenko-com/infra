@@ -14,13 +14,17 @@ r sync garage:media safe:media
 
 # Garage keeps 7 days (retentionPolicy in data/backup.yaml); here nothing is deleted when Garage drops it,
 # so point-in-time recovery reaches back $KEEP (copy the prefix back into a bucket to restore from it).
+# Empty dirs are pruned by a separate unfiltered rmdirs: `delete --rmdirs` applies --min-age to the listing,
+# sees every dir as empty and fails on SFTP (rmdir of a non-empty dir), which aborts the run under set -e.
 echo "== cnpg-backups (accumulate, prune after $KEEP)"
 r copy garage:cnpg-backups safe:cnpg-backups
-r delete safe:cnpg-backups --min-age "$KEEP" --rmdirs
+r delete safe:cnpg-backups --min-age "$KEEP"
+r rmdirs safe:cnpg-backups --leave-root
 
 # Volume archives are overwritten nightly in Garage; keep each night's copy here.
 echo "== restore (latest mirror + dated copies of tonight's archives, pruned after $KEEP)"
 r sync garage:restore safe:restore
 r copy garage:restore "safe:restore-daily/$(date -u +%F)" --max-age 24h
-r delete safe:restore-daily --min-age "$KEEP" --rmdirs
+r delete safe:restore-daily --min-age "$KEEP"
+r rmdirs safe:restore-daily --leave-root
 echo "off-site backup done"
