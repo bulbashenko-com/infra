@@ -8,7 +8,8 @@ import sys
 DS = {"type": "prometheus", "uid": "VictoriaMetrics"}
 LAYER = ('* on (namespace) group_left (label_bulbashenko_com_layer, label_bulbashenko_com_app) '
          'max by (namespace, label_bulbashenko_com_layer, label_bulbashenko_com_app) (kube_namespace_labels)')
-PRIMARY = '* on (pod) group_left () (cnpg_pg_replication_in_recovery == 0)'
+# `and`, not `*`: multiplying by the filter would multiply by its value, 0.
+PRIMARY = 'and on (pod) (cnpg_pg_replication_in_recovery == 0)'
 
 panels = []
 y = 0
@@ -94,7 +95,9 @@ add(
          'count(ALERTS{alertstate="firing", alertname!~"Watchdog|InfoInhibitor"}) or vector(0)', 0,
          desc="Сработавшие алерты, кроме служебных. Список: Alerting > Alert rules."),
     stat("Таргеты вниз", 'count(up == 0) or vector(0)', 4, desc="Что vmagent не может опросить; таблица внизу."),
-    stat("Поды не готовы", 'sum(kube_pod_status_ready{condition="false"}) or vector(0)', 8),
+    stat("Поды не готовы",
+         'count((kube_pod_status_ready{condition="false"} == 1) unless on (namespace, pod) (kube_pod_status_phase{phase="Succeeded"} == 1)) or vector(0)',
+         8, desc="Без завершённых подов Job/CronJob."),
     stat("Рестарты за 1 ч", 'round(sum(increase(kube_pod_container_status_restarts_total[1h]))) or vector(0)', 12),
     stat("OOMKilled сейчас",
          'count(kube_pod_container_status_last_terminated_reason{reason="OOMKilled"} == 1) or vector(0)', 16,
@@ -122,10 +125,11 @@ add(
 )
 advance(4)
 add(
-    stat("Обычно длится деплой",
-         'histogram_quantile(0.5, sum by (le) (rate(gotk_reconcile_duration_seconds_bucket{kind="Kustomization", name=~"site|auth|mail|teamspeak"}[7d])))',
-         0, w=4, unit="s", thr=steps((None, "blue")),
-         desc="Медиана синхронизации Kustomization приложений за 7 дней (включая ожидание готовности подов). Не ETA, а ориентир."),
+    stat("Последний деплой, назад",
+         'time() - max(kube_replicaset_created{namespace=~"site|auth|mail|teamspeak"})', 0, w=4,
+         unit="s", thr=steps((None, "blue")),
+         desc="Когда последний раз выкатилась новая версия приложения (новый ReplicaSet). "
+              "Время деплоя уходит в основном на CI (таблицы CI/CD ниже), выкатка в кластере — секунды."),
 )
 advance(4)
 add(

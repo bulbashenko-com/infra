@@ -139,9 +139,10 @@ spec:
       # No PVC: dashboards and datasources are provisioned from git, people sign in through Ory.
       persistence:
         enabled: false
+      # Grafana 13 with the GitHub plugin sits around 380Mi; 384Mi got it OOMKilled.
       resources:
-        requests: { cpu: 20m, memory: 128Mi }
-        limits: { memory: 384Mi }
+        requests: { cpu: 20m, memory: 256Mi }
+        limits: { memory: 768Mi }
       # Local admin: used by the dashboard/datasource sidecars (basic auth against the reload API) and as break-glass
       # sign-in at /login?disableAutoLogin if Ory is down; the login form is hidden otherwise.
       # Its login must not match any Ory username: Grafana refuses to create an SSO user whose login or email is
@@ -152,7 +153,7 @@ spec:
         passwordKey: admin-password
       # Bump when the Secret grafana changes: the pod restarts and, with no PVC, recreates its database.
       podAnnotations:
-        bulbashenko.com/secret-revision: "2"
+        bulbashenko.com/secret-revision: "3"
       envValueFrom:
         GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET:
           secretKeyRef: { name: grafana, key: oidc-client-secret }
