@@ -24,33 +24,24 @@ resource "cloudflare_dns_record" "auth" {
 
 resource "cloudflare_dns_record" "autoconfig" {
   comment = "[mail] Thunderbird autoconfig, routed to Stalwart"
-  content = hcloud_primary_ip.core_v4.ip_address
+  content = local.tunnel_cname
   name    = "autoconfig.bulbashenko.com"
   proxied = true
   ttl     = 1
-  type    = "A"
+  type    = "CNAME"
   zone_id = var.cloudflare_zone_id
 }
 
 resource "cloudflare_dns_record" "autodiscover" {
   comment = "[mail] Outlook autodiscover, routed to Stalwart"
-  content = hcloud_primary_ip.core_v4.ip_address
+  content = local.tunnel_cname
   name    = "autodiscover.bulbashenko.com"
   proxied = true
   ttl     = 1
-  type    = "A"
+  type    = "CNAME"
   zone_id = var.cloudflare_zone_id
 }
 
-resource "cloudflare_dns_record" "coolify" {
-  comment = "[admin] Coolify dashboard, behind Access"
-  content = hcloud_primary_ip.core_v4.ip_address
-  name    = "coolify.bulbashenko.com"
-  proxied = true
-  ttl     = 1
-  type    = "A"
-  zone_id = var.cloudflare_zone_id
-}
 
 resource "cloudflare_dns_record" "dmarc_txt" {
   comment = "[mail] DMARC, manual: p=none, tighten later"
@@ -141,10 +132,6 @@ moved {
 moved {
   from = cloudflare_dns_record.autodiscover_cname
   to   = cloudflare_dns_record.autodiscover
-}
-moved {
-  from = cloudflare_dns_record.coolify_cname
-  to   = cloudflare_dns_record.coolify
 }
 
 moved {

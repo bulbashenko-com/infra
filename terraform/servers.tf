@@ -1,7 +1,7 @@
 # Mail IP: PTR mail.bulbashenko.com, SPF and sender reputation are tied to it.
 # It must survive the server (rebuild, replacement, move to another node).
 resource "hcloud_primary_ip" "core_v4" {
-  assignee_id       = hcloud_server.hel1_core.id
+  location          = var.location
   assignee_type     = "server"
   auto_delete       = false
   delete_protection = true
@@ -10,13 +10,15 @@ resource "hcloud_primary_ip" "core_v4" {
 
   lifecycle {
     prevent_destroy = true
+    # Assigned through hcloud_server.hel1_core.public_net.
+    ignore_changes = [assignee_id]
   }
 }
 
 # Mail IP: PTR mail.bulbashenko.com, SPF and sender reputation are tied to it.
 # It must survive the server (rebuild, replacement, move to another node).
 resource "hcloud_primary_ip" "core_v6" {
-  assignee_id       = hcloud_server.hel1_core.id
+  location          = var.location
   assignee_type     = "server"
   auto_delete       = false
   delete_protection = true
@@ -25,6 +27,8 @@ resource "hcloud_primary_ip" "core_v6" {
 
   lifecycle {
     prevent_destroy = true
+    # Assigned through hcloud_server.hel1_core.public_net.
+    ignore_changes = [assignee_id]
   }
 }
 
@@ -62,19 +66,45 @@ resource "hcloud_primary_ip" "edge_v6" {
   }
 }
 
+# hel1-core: k3s agent (role=mail). Its public IP is mail.bulbashenko.com (MX, SPF, PTR); the primary IPs are
+# separate, protected resources, so the server can be recreated without losing them.
 resource "hcloud_server" "hel1_core" {
-  backups            = true
-  delete_protection  = false
-  image              = "ubuntu-24.04"
-  location           = "hel1"
-  name               = "hel1-core"
-  rebuild_protection = false
-  server_type        = "cx22"
-
-  lifecycle {
-    # Built before this repo by hand/cloud-init; rebuilds happen via new resources, not drift fixes.
-    ignore_changes = [image, user_data, ssh_keys]
+  name        = "hel1-core"
+  server_type = "cx22"
+  image       = "ubuntu-24.04"
+  location    = var.location
+  backups     = true
+  ssh_keys    = [hcloud_ssh_key.owner.id]
+  labels = {
+    cluster = "hel1"
+    role    = "k3s-agent-mail"
   }
+
+  public_net {
+    ipv4_enabled = true
+    ipv4         = hcloud_primary_ip.core_v4.id
+    ipv6_enabled = true
+    ipv6         = hcloud_primary_ip.core_v6.id
+  }
+
+  network {
+    network_id = hcloud_network.hel1_net.id
+    ip         = "192.168.100.2"
+  }
+
+  user_data = templatefile("${path.module}/cloud-init/k3s-agent.yaml.tftpl", {
+    hostname       = "hel1-core"
+    role           = "mail"
+    private_ip     = "192.168.100.2"
+    server_ip      = local.hel1_cp_private_ip
+    pod_cidr       = "10.42.0.0/16"
+    password_hash  = var.node_password_hash
+    ssh_public_key = var.owner_ssh_public_key
+    k3s_token      = var.k3s_token
+    k3s_version    = var.k3s_version
+  })
+
+  depends_on = [hcloud_network_subnet.hel1_net]
 }
 
 # hel1-edge: k3s agent (role=edge). Owns the public IP that hs. (Headscale) and ts. (TeamSpeak) point at;
