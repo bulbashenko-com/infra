@@ -69,7 +69,7 @@ resource "hcloud_server" "hel1_core" {
   server_type = "cx23"
   image       = "ubuntu-24.04"
   location    = var.location
-  backups     = true
+  backups     = false
   ssh_keys    = [hcloud_ssh_key.owner.id]
   labels = {
     cluster = "hel1"
@@ -110,7 +110,7 @@ resource "hcloud_server" "hel1_edge" {
   server_type = "cx23"
   image       = "ubuntu-24.04"
   location    = var.location
-  backups     = true
+  backups     = false
   ssh_keys    = [hcloud_ssh_key.owner.id]
   labels = {
     cluster = "hel1"

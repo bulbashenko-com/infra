@@ -21,7 +21,8 @@ Single source of truth for the bulbashenko.com platform. If it runs, it is descr
 
 1. This repo.
 2. The age private key (offline copy with the owner).
-3. Data backups on the Hetzner Storage Box (restic, CNPG WAL).
+3. Data backups on the Hetzner Storage Box (rclone crypt, `box:hel1`): CNPG base backups + WAL (60 days),
+   Garage buckets, Headscale/TeamSpeak volume archives. Rehearsed with `apps/production/drill`.
 
 `tofu apply` → servers come up with k3s via cloud-init → `flux bootstrap` → Flux restores everything else → restore data.
 
