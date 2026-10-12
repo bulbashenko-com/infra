@@ -4,8 +4,8 @@
 set -eu
 apk add --no-cache curl jq >/dev/null
 # Not-ready-tolerant Service: /health is 503 until the layout exists, which is what this script creates.
-A="${GARAGE_ADMIN_URL:-http://garage-admin:3903}"
-NODES="${GARAGE_NODES:-1}"
+A="${GARAGE_ADMIN_URL:-http://garage-ha-admin:3903}"
+NODES="${GARAGE_NODES:-3}"
 H="Authorization: Bearer ${GARAGE_ADMIN_TOKEN}"
 get()  { curl -fsS -H "$H" "$A$1"; }
 post() { curl -fsS -H "$H" -H 'Content-Type: application/json' -X POST "$A$1" -d "$2"; }

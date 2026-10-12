@@ -13,7 +13,7 @@ resource "cloudflare_dns_record" "apex" {
 }
 
 resource "cloudflare_dns_record" "auth" {
-  comment = "[auth] Authelia SSO portal and OIDC issuer (public)"
+  comment = "[auth] Ory login and OIDC issuer (public), via Tunnel"
   content = local.tunnel_cname
   name    = "auth.bulbashenko.com"
   proxied = true
@@ -114,43 +114,11 @@ resource "cloudflare_dns_record" "ts_a" {
 }
 
 resource "cloudflare_dns_record" "www" {
-  comment = "[web] redirects to apex (Coolify)"
+  comment = "[web] redirects to apex, via Tunnel"
   content = local.tunnel_cname
   name    = "www.bulbashenko.com"
   proxied = true
   ttl     = 1
   type    = "CNAME"
   zone_id = var.cloudflare_zone_id
-}
-
-# 2026-10: these stay on core (Coolify/Stalwart) when the apex moves to the tunnel, so they get
-# their own A record instead of a CNAME to the apex.
-moved {
-  from = cloudflare_dns_record.autoconfig_cname
-  to   = cloudflare_dns_record.autoconfig
-}
-moved {
-  from = cloudflare_dns_record.autodiscover_cname
-  to   = cloudflare_dns_record.autodiscover
-}
-
-moved {
-  from = cloudflare_dns_record.apex_a
-  to   = cloudflare_dns_record.apex
-}
-moved {
-  from = cloudflare_dns_record.www_cname
-  to   = cloudflare_dns_record.www
-}
-moved {
-  from = cloudflare_dns_record.auth_cname
-  to   = cloudflare_dns_record.auth
-}
-moved {
-  from = cloudflare_dns_record.media_cname
-  to   = cloudflare_dns_record.media
-}
-moved {
-  from = cloudflare_dns_record.s3_cname
-  to   = cloudflare_dns_record.s3
 }
