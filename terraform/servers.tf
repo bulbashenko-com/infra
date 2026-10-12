@@ -2,7 +2,6 @@
 # It must survive the server (rebuild, replacement, move to another node).
 resource "hcloud_primary_ip" "core_v4" {
   location          = var.location
-  assignee_type     = "server"
   auto_delete       = false
   delete_protection = true
   name              = "bulbashenko.com"
@@ -11,7 +10,7 @@ resource "hcloud_primary_ip" "core_v4" {
   lifecycle {
     prevent_destroy = true
     # Assigned through hcloud_server.hel1_core.public_net.
-    ignore_changes = [assignee_id]
+    ignore_changes = [assignee_id, assignee_type]
   }
 }
 
@@ -19,7 +18,6 @@ resource "hcloud_primary_ip" "core_v4" {
 # It must survive the server (rebuild, replacement, move to another node).
 resource "hcloud_primary_ip" "core_v6" {
   location          = var.location
-  assignee_type     = "server"
   auto_delete       = false
   delete_protection = true
   name              = "bulbashenko.com (ipv6)"
@@ -28,7 +26,7 @@ resource "hcloud_primary_ip" "core_v6" {
   lifecycle {
     prevent_destroy = true
     # Assigned through hcloud_server.hel1_core.public_net.
-    ignore_changes = [assignee_id]
+    ignore_changes = [assignee_id, assignee_type]
   }
 }
 
@@ -36,7 +34,6 @@ resource "hcloud_primary_ip" "core_v6" {
 # the server being recreated as a k3s agent.
 resource "hcloud_primary_ip" "edge_v4" {
   location          = var.location
-  assignee_type     = "server"
   auto_delete       = false
   delete_protection = true
   name              = "primary_ip-135832240"
@@ -45,7 +42,7 @@ resource "hcloud_primary_ip" "edge_v4" {
   lifecycle {
     prevent_destroy = true
     # Assigned through hcloud_server.hel1_edge.public_net.
-    ignore_changes = [assignee_id]
+    ignore_changes = [assignee_id, assignee_type]
   }
 }
 
@@ -53,7 +50,6 @@ resource "hcloud_primary_ip" "edge_v4" {
 # the server being recreated as a k3s agent.
 resource "hcloud_primary_ip" "edge_v6" {
   location          = var.location
-  assignee_type     = "server"
   auto_delete       = false
   delete_protection = true
   name              = "primary_ip-135832241"
@@ -62,7 +58,7 @@ resource "hcloud_primary_ip" "edge_v6" {
   lifecycle {
     prevent_destroy = true
     # Assigned through hcloud_server.hel1_edge.public_net.
-    ignore_changes = [assignee_id]
+    ignore_changes = [assignee_id, assignee_type]
   }
 }
 
