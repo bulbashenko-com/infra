@@ -1,0 +1,71 @@
+# Mail. apps/mail (namespace, Secret) goes with `edge`-style ordering:
+#   mail-base (apps/mail) -> mail-import (one-time Job) -> mail (Stalwart from bulbashenko-com/mail).
+# mail-import and mail are suspended until the mail window.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: mail-base
+  namespace: flux-system
+  labels: { bulbashenko.com/layer: app, bulbashenko.com/app: mail }
+spec:
+  dependsOn:
+    - name: apps
+  interval: 10m
+  path: ./apps/mail
+  prune: true
+  wait: true
+  sourceRef: { kind: GitRepository, name: flux-system }
+  decryption: { provider: sops, secretRef: { name: sops-age } }
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: mail-import
+  namespace: flux-system
+  labels: { bulbashenko.com/layer: app, bulbashenko.com/app: mail }
+spec:
+  suspend: true
+  dependsOn:
+    - name: mail-base
+  interval: 10m
+  path: ./apps/mail-import
+  prune: true
+  wait: true
+  timeout: 20m
+  sourceRef: { kind: GitRepository, name: flux-system }
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: mail
+  namespace: flux-system
+  labels: { bulbashenko.com/layer: app, bulbashenko.com/app: mail }
+spec:
+  interval: 10m
+  url: https://github.com/bulbashenko-com/mail.git
+  ref:
+    commit: e97bd7f0c2bea71210a290b9c9d96991dbff8787
+  ignore: |
+    /*
+    !/kustomization.yaml
+    !/deploy/k8s/
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: mail
+  namespace: flux-system
+  labels: { bulbashenko.com/layer: app, bulbashenko.com/app: mail }
+spec:
+  suspend: true
+  dependsOn:
+    - name: mail-import
+  interval: 10m
+  sourceRef: { kind: GitRepository, name: mail }
+  path: ./
+  targetNamespace: mail
+  prune: true
+  wait: true
+  timeout: 10m
+  commonMetadata:
+    labels: { bulbashenko.com/layer: app, bulbashenko.com/app: mail }

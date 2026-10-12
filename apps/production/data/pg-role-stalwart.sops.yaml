@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: Secret
+metadata:
+    name: pg-role-stalwart
+    namespace: data
+    labels:
+        cnpg.io/reload: "true"
+type: kubernetes.io/basic-auth
+stringData:
+    username: ENC[AES256_GCM,data:3pMfq4MQtD0=,iv:5QObM8KaHeyiWF8v5nQ7E73hmVYIsnjS73g3IjFO5pY=,tag:IL+FhOF2oEgcf1wkDjjLeQ==,type:str]
+    password: ENC[AES256_GCM,data:bWfq3ZCEPaQ9pfhgSTBpIs+3ow1cJMzenzknI34DxnpIckK+7c4pHSybQvmZHP16,iv:7lG1h+3L84UvOhUguLOmJ7mBQ8Z7jzqIUuCB4O+/LeA=,tag:7IxM0mhFSr43Uw+ZjESUCQ==,type:str]
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBrZUgwMGlCcUx6Z1l1d3ho
+            b2RPMDFFMFYralU0cDBKMTJyZUNMRlVRTDFvCnhFMEZ0WEIrb0lwQUNrODg5aGU1
+            QzRuOTl3SXBNUWo4ZXQ2dkw3MUwwZ0EKLS0tIGRTc05HdWZKdWdYVkJmNWZjNlpP
+            RjZZWjZQVmVUU1N3Q1VUWnRWbFI1Z0EK9atvGjM9yvQqYmCS0uRIsmGu3Waa6tXO
+            c8gkwLHReSCQ67xDsy2PzIYTV+08NZM/kEEABKNTaKZ8plGTx3atXQ==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age12qgx04vs6thq39ym6jl5wlgcymjzrdln7w6wyck7px28k4p8fedq09dq5g
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBhaE9ZK1NSUlR4Mnk3NHVs
+            bjFVZURMOVF5T3hvSDRFeEFPUHB6UW9RRW1nCkxldnB2S3JuRHBtTjhTRHV6SkxE
+            bWo4TE9rY3VzRG13YnVGa2JnRStvNkEKLS0tIFpHOE9wTnlOcU1sN0FkbjJqL3dE
+            N0dqZU94cENkVmJqYlJlcmt4cDI4eVEKwUmy9OfwJ5TnpBiSydzthaQ+dJM8YGni
+            3IXn2aGkn101UWC0Vq3Zus9ZEGJiVKKI3sh69HLsIc/0J1lFPzeuhw==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age1c9jlhvq47psz20sl2wu7d2jwstjjylfx769tuumree8hdf5klf2sjluulk
+    encrypted_regex: ^(data|stringData)$
+    lastmodified: "2026-10-12T00:11:31Z"
+    mac: ENC[AES256_GCM,data:qzq8lnmI6NAAfhLDdnFuwENCqkQ/MUPlO6IKAWTnfZu8dX7zYYh0wTlanDnKjxaLxou3FhuHebsDU/OJSB5jOAQITJHr+m0qY9fe+qsXRrWc1UbRb5d6IvT+ij77qxUXxExmlBNJm7Hn+MZGp0hacFeerjFf+Fjkh3zvGmOe4Lc=,iv:rU4QwMNKXJzmArGkWidEp8qRFaTrDWI5jyg4Qujix30=,tag:3ou/2dsFdBZXxqINDO+mRA==,type:str]
+    version: 3.13.3

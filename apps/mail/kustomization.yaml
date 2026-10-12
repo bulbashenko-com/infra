@@ -1,0 +1,12 @@
+# Namespace and Secret for the mail server; the workload comes from bulbashenko-com/mail (clusters/hel1/mail.yaml).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: mail
+labels:
+  - pairs:
+      bulbashenko.com/layer: app
+      bulbashenko.com/app: mail
+    includeSelectors: false
+resources:
+  - namespace.yaml
+  - secret.sops.yaml
