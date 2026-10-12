@@ -132,10 +132,15 @@ spec:
         limits: { memory: 384Mi }
       # Local admin: used by the dashboard/datasource sidecars (basic auth against the reload API) and as break-glass
       # sign-in at /login?disableAutoLogin if Ory is down; the login form is hidden otherwise.
+      # Its login must not match any Ory username: Grafana refuses to create an SSO user whose login or email is
+      # taken ("User sync failed"), and it does not link accounts by login.
       admin:
         existingSecret: grafana
         userKey: admin-user
         passwordKey: admin-password
+      # Bump when the Secret grafana changes: the pod restarts and, with no PVC, recreates its database.
+      podAnnotations:
+        bulbashenko.com/secret-revision: "2"
       envValueFrom:
         GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET:
           secretKeyRef: { name: grafana, key: oidc-client-secret }
