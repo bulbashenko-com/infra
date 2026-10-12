@@ -70,7 +70,7 @@ resource "hcloud_primary_ip" "edge_v6" {
 # separate, protected resources, so the server can be recreated without losing them.
 resource "hcloud_server" "hel1_core" {
   name        = "hel1-core"
-  server_type = "cx22"
+  server_type = "cx23"
   image       = "ubuntu-24.04"
   location    = var.location
   backups     = true
