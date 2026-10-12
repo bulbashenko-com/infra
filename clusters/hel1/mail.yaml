@@ -1,6 +1,5 @@
-# Mail. apps/mail (namespace, Secret) goes with `edge`-style ordering:
-#   mail-base (apps/mail) -> mail-import (one-time Job) -> mail (Stalwart from bulbashenko-com/mail).
-# Unsuspended in the mail window (2026-10-12).
+# Mail: apps/mail (namespace, Secret) -> Stalwart from bulbashenko-com/mail (pinned commit).
+# Data lives in the CNPG database stalwart (imported from Coolify on 2026-10-12).
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
@@ -16,22 +15,6 @@ spec:
   wait: true
   sourceRef: { kind: GitRepository, name: flux-system }
   decryption: { provider: sops, secretRef: { name: sops-age } }
----
-apiVersion: kustomize.toolkit.fluxcd.io/v1
-kind: Kustomization
-metadata:
-  name: mail-import
-  namespace: flux-system
-  labels: { bulbashenko.com/layer: app, bulbashenko.com/app: mail }
-spec:
-  dependsOn:
-    - name: mail-base
-  interval: 10m
-  path: ./apps/mail-import
-  prune: true
-  wait: true
-  timeout: 20m
-  sourceRef: { kind: GitRepository, name: flux-system }
 ---
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: GitRepository
@@ -57,7 +40,7 @@ metadata:
   labels: { bulbashenko.com/layer: app, bulbashenko.com/app: mail }
 spec:
   dependsOn:
-    - name: mail-import
+    - name: mail-base
   interval: 10m
   sourceRef: { kind: GitRepository, name: mail }
   path: ./
