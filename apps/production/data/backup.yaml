@@ -1,11 +1,11 @@
 # Postgres backups: continuous WAL archiving + daily base backups into Garage (bucket cnpg-backups),
-# kept 14 days. The off-site copy of this bucket is in apps/production/backup.
+# kept 7 days on NVMe for fast recovery. The off-site copy keeps 60 days (apps/production/backup).
 apiVersion: barmancloud.cnpg.io/v1
 kind: ObjectStore
 metadata:
   name: garage
 spec:
-  retentionPolicy: "14d"
+  retentionPolicy: "7d"
   configuration:
     destinationPath: s3://cnpg-backups/
     endpointURL: http://garage.data.svc.cluster.local:3900
