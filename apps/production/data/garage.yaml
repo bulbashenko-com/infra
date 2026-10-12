@@ -57,12 +57,14 @@ spec:
         storageClassName: local-path
         resources: { requests: { storage: 10Gi } }
 ---
+# The name every client uses (site, CNPG, off-site, volume backups, Traefik routes). Points at the
+# replicated garage-ha; the single-node pods above are only read by garage-migrate until removed.
 apiVersion: v1
 kind: Service
 metadata:
   name: garage
 spec:
-  selector: { app: garage }
+  selector: { app: garage-ha }
   ports:
     - { name: s3, port: 3900, targetPort: s3 }
     - { name: web, port: 3902, targetPort: web }
