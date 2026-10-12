@@ -14,7 +14,10 @@ Single source of truth for the bulbashenko.com platform. If it runs, it is descr
 
 - Change = pull request. `main` is protected; CI must be green.
 - Secrets are committed **only** encrypted, in `*.sops.yaml`. CI rejects plaintext `kind: Secret` and unencrypted `*.sops.*` files; gitleaks scans every push.
-- Staging deploys automatically. Production changes only by an image digest promoted from staging (`just promote <app>`).
+- Production deploys are pull requests. A push to `main` in an app repo (site, auth, mail, teamspeak) opens or refreshes
+  the PR `deploy/<app>` here, pinning the new commit (image tag or Flux `GitRepository` commit); merge = deploy,
+  close = skip. One rolling PR per app, never auto-merged. By hand: `just promote <app> [sha]` (preview: `just promote-dry`).
+  Details: [Deploy PRs](#deploy-prs).
 - Rollback = `git revert`.
 
 ## Recovery from zero
@@ -52,3 +55,26 @@ Every namespace and every object we manage carries two labels, so "mine" and "th
 Where they come from: Namespace manifests (explicit), `labels:` in each directory's `kustomization.yaml` (`includeSelectors: false`; pod templates included for apps), Flux `commonMetadata` for the auth repo, and `infrastructure/configs/system-namespaces.yaml` for namespaces Kubernetes or Flux create themselves (prune disabled).
 
 Examples: `kubectl get pods -A -l bulbashenko.com/layer=app`, in k9s `:pods` then `/-l bulbashenko.com/layer=app`.
+
+## Deploy PRs
+
+```
+app repo: push to main ─► CI / image build ─► request-promote.yml ──repository_dispatch──► infra: promote.yml
+                                                                                              │ scripts/promote.sh
+                                                                         PR deploy/<app> ◄────┘ (owner merges or closes)
+```
+
+| App | Gate before the PR | Pin changed |
+|---|---|---|
+| site | image `ghcr.io/bulbashenko-com/site:<sha>` pushed | `apps/production/site/kustomization.yaml` `newTag` |
+| auth | `test` (UI + e2e) green, then image `auth-ui:<sha>` pushed | `clusters/hel1/auth.yaml` `commit` + `newTag` |
+| mail | `CI` green | `clusters/hel1/mail.yaml` `commit` |
+| teamspeak | `CI` green | `clusters/hel1/teamspeak.yaml` `commit` |
+
+- The PR body lists the commits between what production runs and the new pin, and warns on rollbacks.
+- A newer push force-updates the same `deploy/<app>` branch; an older request never overwrites a newer pending one.
+- Closing the PR keeps production as is; the next push to that app opens a new one.
+- Credentials: GitHub App `bulbashenko-com-deploy` (Contents + Pull requests: write), installed on `infra` only.
+  Org variable `DEPLOY_APP_CLIENT_ID` and org secret `DEPLOY_APP_PRIVATE_KEY`, visible to infra and the app repos.
+  An App token (not `GITHUB_TOKEN`) is required so the PR runs the required checks.
+- Add an app: a `case` line in `scripts/promote.sh`, the choice in `promote.yml`, and a `request-promote.yml` job in its repo.

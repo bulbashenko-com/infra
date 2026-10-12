@@ -13,6 +13,6 @@ resources:
   - secret.sops.yaml
   - site.yaml
 images:
-  # Promote = set this to the SHA that passed staging (image built by bulbashenko-com/site CI).
+  # Changed by deploy PRs (scripts/promote.sh): the image the site CI built for that commit.
   - name: ghcr.io/bulbashenko-com/site
     newTag: 690408839545c00384c0c7a482b2904fe17a2c5c
