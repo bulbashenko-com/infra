@@ -6,4 +6,5 @@ resources:
   - traefik
   - cloudflared
   - flux-web
+  - monitoring
   - system-namespaces.yaml

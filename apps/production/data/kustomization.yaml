@@ -24,6 +24,7 @@ resources:
   - routes.yaml
   - backup.yaml
   - backup-initial.yaml
+  - scrapes.yaml
 configMapGenerator:
   - name: garage-ha-config
     files:

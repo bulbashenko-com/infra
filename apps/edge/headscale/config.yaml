@@ -74,6 +74,7 @@ dns:
   extra_records:
     - {name: "users.int.bulbashenko.com", type: "A", value: "100.64.0.5"}
     - {name: "flux.int.bulbashenko.com", type: "A", value: "100.64.0.5"}
+    - {name: "grafana.int.bulbashenko.com", type: "A", value: "100.64.0.5"}
     - {name: "mail.int.bulbashenko.com", type: "A", value: "100.64.0.5"}
 
 oidc:

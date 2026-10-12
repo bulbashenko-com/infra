@@ -1,0 +1,16 @@
+# Stalwart's Prometheus endpoint. It is switched on in Stalwart's own settings (stored in its database, not in git):
+# Settings > Telemetry > Metrics > Prometheus = Enabled, authUsername "vmagent",
+# authSecret = EnvironmentVariable STALWART_METRICS_PASSWORD (from the Secret stalwart, loaded through envFrom).
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMPodScrape
+metadata:
+  name: stalwart
+spec:
+  selector:
+    matchLabels: { app: stalwart }
+  podMetricsEndpoints:
+    - port: http
+      path: /metrics/prometheus
+      basicAuth:
+        username: { name: stalwart, key: STALWART_METRICS_USERNAME }
+        password: { name: stalwart, key: STALWART_METRICS_PASSWORD }

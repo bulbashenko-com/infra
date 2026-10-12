@@ -10,3 +10,4 @@ labels:
 resources:
   - namespace.yaml
   - secret.sops.yaml
+  - scrape.yaml
