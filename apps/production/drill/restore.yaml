@@ -1,0 +1,91 @@
+# Step 2 of the restore drill: a throw-away Postgres recovered from the fetched off-site copy only
+# (bucket `drill`, never the live cnpg-backups), replaying WAL to the end of what the copy holds.
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: drill
+spec:
+  configuration:
+    destinationPath: s3://drill/
+    endpointURL: http://garage.data.svc.cluster.local:3900
+    s3Credentials:
+      accessKeyId: { name: garage, key: KEY_RESTORE_ID }
+      secretAccessKey: { name: garage, key: KEY_RESTORE_SECRET }
+      region: { name: garage, key: S3_REGION }
+    wal:
+      compression: gzip
+    data:
+      compression: gzip
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: pg-drill
+spec:
+  instances: 1
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.7-standard-trixie
+  enableSuperuserAccess: false
+  storage:
+    size: 10Gi
+    storageClass: local-path
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: node.bulbashenko.com/role
+                operator: In
+                values: [mail, edge]
+  resources:
+    requests: { cpu: 50m, memory: 256Mi }
+    limits: { memory: 768Mi }
+  # No WAL archiver: the drill must never write into any backup bucket.
+  bootstrap:
+    recovery:
+      source: pg
+  externalClusters:
+    - name: pg
+      plugin:
+        name: barman-cloud.cloudnative-pg.io
+        parameters:
+          barmanObjectName: drill
+          serverName: pg
+---
+# Compares the recovered cluster with production: databases and their sizes, and exact row counts of
+# every table in the site database. Small differences are writes made after the last off-site copy.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: drill-verify
+spec:
+  backoffLimit: 20
+  template:
+    spec:
+      restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 70
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: psql
+          image: postgres:17.7-alpine
+          command: ["/bin/sh", "/scripts/verify.sh"]
+          env:
+            - { name: PGUSER, valueFrom: { secretKeyRef: { name: pg-role-bulbashenko, key: username } } }
+            - { name: PGPASSWORD, valueFrom: { secretKeyRef: { name: pg-role-bulbashenko, key: password } } }
+            - { name: PGDATABASE, value: bulbashenko }
+            - { name: PGSSLMODE, value: require }
+            - { name: PGCONNECT_TIMEOUT, value: "5" }
+          resources:
+            requests: { cpu: 10m, memory: 32Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          volumeMounts:
+            - { name: scripts, mountPath: /scripts }
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - name: scripts
+          configMap: { name: drill-verify }
+        - { name: tmp, emptyDir: {} }
