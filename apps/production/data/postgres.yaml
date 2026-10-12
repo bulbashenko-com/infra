@@ -5,7 +5,21 @@ kind: Cluster
 metadata:
   name: pg
 spec:
-  instances: 1
+  # Primary + one streaming replica on different agent nodes: a node loss means a switchover in seconds,
+  # not a restore. Backups (WAL + base, below) still guard against bad writes.
+  instances: 2
+  affinity:
+    enablePodAntiAffinity: true
+    topologyKey: kubernetes.io/hostname
+    podAntiAffinityType: required
+    # Keep Postgres off the control plane: only agent nodes.
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: node.bulbashenko.com/role
+                operator: In
+                values: [mail, edge]
   imageName: ghcr.io/cloudnative-pg/postgresql:17.7-standard-trixie
   enableSuperuserAccess: false
   storage:
