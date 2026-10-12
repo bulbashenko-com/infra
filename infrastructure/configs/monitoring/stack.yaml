@@ -152,7 +152,7 @@ spec:
         passwordKey: admin-password
       # Bump when the Secret grafana changes: the pod restarts and, with no PVC, recreates its database.
       podAnnotations:
-        bulbashenko.com/secret-revision: "2"
+        bulbashenko.com/secret-revision: "3"
       envValueFrom:
         GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET:
           secretKeyRef: { name: grafana, key: oidc-client-secret }
