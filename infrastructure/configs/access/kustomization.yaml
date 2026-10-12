@@ -9,3 +9,4 @@ labels:
 resources:
   - claude-readonly.yaml
   - claude-readonly-extra.yaml
+  - claude-readonly-monitoring.yaml
