@@ -43,6 +43,10 @@ spec:
         ensure: present
         login: true
         passwordSecret: { name: pg-role-keto }
+      - name: stalwart
+        ensure: present
+        login: true
+        passwordSecret: { name: pg-role-stalwart }
 ---
 apiVersion: postgresql.cnpg.io/v1
 kind: Database
@@ -70,3 +74,12 @@ spec:
   cluster: { name: pg }
   name: keto
   owner: keto
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: stalwart
+spec:
+  cluster: { name: pg }
+  name: stalwart
+  owner: stalwart

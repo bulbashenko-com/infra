@@ -43,7 +43,7 @@ jobs:
       - name: kustomize build every overlay Flux reconciles
         run: |
           set -euo pipefail
-          for d in infrastructure/controllers infrastructure/configs apps/production apps/production/site apps/edge; do
+          for d in infrastructure/controllers infrastructure/configs apps/production apps/production/site apps/edge apps/mail apps/mail-import; do
             echo "== $d"; kubectl kustomize "$d" > /dev/null
           done
 
