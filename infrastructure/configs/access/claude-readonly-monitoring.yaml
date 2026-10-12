@@ -1,0 +1,30 @@
+# Lets the AI read metrics, alert rules and alerts: GET through the API server's service proxy to VMSingle, vmalert
+# and Alertmanager only. `get` on services/proxy allows GET requests only, so nothing can be written or silenced.
+# Names carry the port because the proxy URL does (/services/vmsingle-vm:8428/proxy/...).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: claude-readonly-monitoring
+  namespace: monitoring
+rules:
+  - apiGroups: [""]
+    resources: [services/proxy]
+    resourceNames:
+      - vmsingle-vm:8428
+      - vmalert-vm:8080
+      - vmalertmanager-vm:9093
+    verbs: [get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: claude-readonly-monitoring
+  namespace: monitoring
+subjects:
+  - kind: ServiceAccount
+    name: claude-readonly
+    namespace: access
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: claude-readonly-monitoring
