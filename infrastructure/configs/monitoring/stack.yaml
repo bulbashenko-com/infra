@@ -119,6 +119,18 @@ spec:
             access: proxy
             uid: VictoriaMetrics
             isDefault: true
+      # GitHub (CI runs, open PRs) through the read-only GitHub App bulbashenko-com-grafana. Credentials come from the
+      # Secret grafana via env (Grafana expands $VARS in provisioning); until they exist the datasource just errors.
+      extra:
+        - name: GitHub
+          uid: github
+          type: grafana-github-datasource
+          jsonData:
+            selectedAuthType: github-app
+            appId: $GITHUB_APP_ID
+            installationId: $GITHUB_APP_INSTALLATION_ID
+          secureJsonData:
+            privateKey: $GITHUB_APP_PRIVATE_KEY
 
     grafana:
       fullnameOverride: grafana
@@ -144,6 +156,16 @@ spec:
       envValueFrom:
         GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET:
           secretKeyRef: { name: grafana, key: oidc-client-secret }
+        # Optional: Grafana starts without them, only the GitHub datasource fails.
+        GITHUB_APP_ID:
+          secretKeyRef: { name: grafana, key: github-app-id, optional: true }
+        GITHUB_APP_INSTALLATION_ID:
+          secretKeyRef: { name: grafana, key: github-app-installation-id, optional: true }
+        GITHUB_APP_PRIVATE_KEY:
+          secretKeyRef: { name: grafana, key: github-app-private-key, optional: true }
+      # Installed at every pod start (no PVC). Official, signed plugin.
+      plugins:
+        - grafana-github-datasource@2.9.3
       sidecar:
         dashboards:
           # Dashboards from this directory land in their own folder (see grafana-dashboards in kustomization.yaml).
@@ -153,6 +175,9 @@ spec:
       grafana.ini:
         server:
           root_url: https://grafana.int.bulbashenko.com
+        # "Главное" (dashboards/main.json) as the home page; the sidecar writes it under <folder>/<grafana_folder>/.
+        dashboards:
+          default_home_dashboard_path: /var/lib/grafana/dashboards/default/bulbashenko/main.json
         analytics:
           reporting_enabled: false
           check_for_updates: false
