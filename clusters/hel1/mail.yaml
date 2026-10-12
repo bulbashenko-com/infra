@@ -1,6 +1,6 @@
 # Mail. apps/mail (namespace, Secret) goes with `edge`-style ordering:
 #   mail-base (apps/mail) -> mail-import (one-time Job) -> mail (Stalwart from bulbashenko-com/mail).
-# mail-import and mail are suspended until the mail window.
+# Unsuspended in the mail window (2026-10-12).
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
@@ -24,7 +24,6 @@ metadata:
   namespace: flux-system
   labels: { bulbashenko.com/layer: app, bulbashenko.com/app: mail }
 spec:
-  suspend: true
   dependsOn:
     - name: mail-base
   interval: 10m
@@ -57,7 +56,6 @@ metadata:
   namespace: flux-system
   labels: { bulbashenko.com/layer: app, bulbashenko.com/app: mail }
 spec:
-  suspend: true
   dependsOn:
     - name: mail-import
   interval: 10m

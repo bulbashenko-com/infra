@@ -69,14 +69,12 @@ dns:
     global: []
     split: {}
   search_domains: []
-  # Admin UIs, resolved over the mesh (split DNS). IPv4 only.
-  #   100.64.0.5 = hel1-cp (k3s cluster: Traefik with mesh-only + Ory)
-  #   100.64.0.2 = hel1-core (Coolify; mail.int and coolify.int until the mail phase)
+  # Admin UIs, resolved over the mesh (split DNS) to hel1-cp (100.64.0.5): Traefik with mesh-only + Ory.
+  # IPv4 only.
   extra_records:
     - {name: "users.int.bulbashenko.com", type: "A", value: "100.64.0.5"}
     - {name: "flux.int.bulbashenko.com", type: "A", value: "100.64.0.5"}
-    - {name: "mail.int.bulbashenko.com", type: "A", value: "100.64.0.2"}
-    - {name: "coolify.int.bulbashenko.com", type: "A", value: "100.64.0.2"}
+    - {name: "mail.int.bulbashenko.com", type: "A", value: "100.64.0.5"}
 
 oidc:
   only_start_if_oidc_is_available: true
