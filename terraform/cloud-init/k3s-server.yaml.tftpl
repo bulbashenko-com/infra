@@ -72,6 +72,9 @@ write_files:
       write-kubeconfig-group: k3s-admins
       node-label:
         - node.bulbashenko.com/role=control-plane
+      # Prefer agents for workloads; the control plane keeps k3s itself and what must run here.
+      node-taint:
+        - node-role.kubernetes.io/control-plane:PreferNoSchedule
 
 runcmd:
   - systemctl restart ssh
