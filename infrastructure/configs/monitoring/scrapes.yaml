@@ -1,0 +1,74 @@
+# Platform components the k8s-stack chart does not scrape on its own. App targets (CNPG, Garage, Stalwart) are
+# scraped from objects next to the apps (apps/production/data, apps/mail).
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMPodScrape
+metadata:
+  name: traefik
+  namespace: monitoring
+spec:
+  namespaceSelector: { matchNames: [kube-system] }
+  selector:
+    matchLabels: { app.kubernetes.io/name: traefik }
+  podMetricsEndpoints:
+    - port: metrics
+---
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMPodScrape
+metadata:
+  name: cloudflared
+  namespace: monitoring
+spec:
+  namespaceSelector: { matchNames: [cloudflared] }
+  selector:
+    matchLabels: { app: cloudflared }
+  podMetricsEndpoints:
+    - port: metrics
+---
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMPodScrape
+metadata:
+  name: cert-manager
+  namespace: monitoring
+spec:
+  namespaceSelector: { matchNames: [cert-manager] }
+  selector:
+    matchLabels: { app.kubernetes.io/instance: cert-manager }
+  podMetricsEndpoints:
+    - port: http-metrics
+---
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMPodScrape
+metadata:
+  name: cnpg-operator
+  namespace: monitoring
+spec:
+  namespaceSelector: { matchNames: [cnpg-system] }
+  selector:
+    matchLabels: { app.kubernetes.io/name: cloudnative-pg }
+  podMetricsEndpoints:
+    - port: metrics
+---
+# Flux controllers (http-prom) and Flux Operator (http-metrics); flux-system's allow-scraping NetworkPolicy
+# admits scrapers from any namespace.
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMPodScrape
+metadata:
+  name: flux
+  namespace: monitoring
+spec:
+  namespaceSelector: { matchNames: [flux-system] }
+  selector: {}
+  podMetricsEndpoints:
+    - port: http-prom
+    - port: http-metrics
+---
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMServiceScrape
+metadata:
+  name: vm-operator
+  namespace: monitoring
+spec:
+  selector:
+    matchLabels: { app.kubernetes.io/name: victoria-metrics-operator }
+  endpoints:
+    - port: http

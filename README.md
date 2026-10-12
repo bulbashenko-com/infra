@@ -50,11 +50,27 @@ Every namespace and every object we manage carries two labels, so "mine" and "th
 | Label | Values |
 |---|---|
 | `bulbashenko.com/layer` | `app`: our services (site, auth, data). `platform`: what we install for them (tunnel, certs, Postgres operator, ingress, GitOps UI, access). `system`: Kubernetes/k3s internals, not touched. |
-| `bulbashenko.com/app` | `site`, `auth`, `data`, `tunnel`, `certs`, `postgres-operator`, `ingress`, `gitops`, `access`, `controllers`, `configs`, `kubernetes` |
+| `bulbashenko.com/app` | `site`, `auth`, `data`, `tunnel`, `certs`, `postgres-operator`, `ingress`, `gitops`, `access`, `monitoring`, `controllers`, `configs`, `kubernetes` |
 
 Where they come from: Namespace manifests (explicit), `labels:` in each directory's `kustomization.yaml` (`includeSelectors: false`; pod templates included for apps), Flux `commonMetadata` for the auth repo, and `infrastructure/configs/system-namespaces.yaml` for namespaces Kubernetes or Flux create themselves (prune disabled).
 
 Examples: `kubectl get pods -A -l bulbashenko.com/layer=app`, in k9s `:pods` then `/-l bulbashenko.com/layer=app`.
+kube-state-metrics exports both labels (`label_bulbashenko_com_layer`, `label_bulbashenko_com_app` on `kube_namespace_labels`
+and `kube_pod_labels`); Grafana's dashboard "Cluster by layer" groups CPU, memory, restarts and readiness by them.
+
+## Monitoring
+
+victoria-metrics-k8s-stack in `monitoring`: the operator (`infrastructure/controllers/victoria-metrics-operator.yaml`, brings
+the CRDs) and the stack (`infrastructure/configs/monitoring/`: VMSingle with 30 days retention, vmagent, vmalert,
+Alertmanager, node-exporter, kube-state-metrics, Grafana).
+
+- Grafana: https://grafana.int.bulbashenko.com (mesh only, sign-in through Ory client `grafana`; only `infra-admins` get in,
+  as Grafana server admins). No PVC: dashboards and datasources come from git, upstream dashboards and alert rules from the
+  chart's sync Job. Break-glass: `/login?disableAutoLogin` with the local admin from the Secret `grafana`.
+- Our dashboards: JSON files in `infrastructure/configs/monitoring/dashboards/` (folder "bulbashenko").
+- Scrape targets: platform components in `infrastructure/configs/monitoring/scrapes.yaml`; app targets next to the app
+  (`apps/production/data/scrapes.yaml` for CNPG and Garage, `apps/mail/scrape.yaml` for Stalwart).
+- Alerts: Alertmanager has no receiver yet (Telegram: infra#75).
 
 ## Deploy PRs
 

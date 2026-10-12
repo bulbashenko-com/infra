@@ -1,0 +1,52 @@
+# VictoriaMetrics Operator: brings the VM CRDs (VMSingle, VMAgent, VM*Scrape, VMRule, ...). Lives here so the CRDs
+# exist before infrastructure/configs/monitoring (the k8s-stack release and the scrape objects) is applied.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  labels:
+    bulbashenko.com/layer: platform
+    bulbashenko.com/app: monitoring
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: victoria-metrics-operator
+  namespace: monitoring
+spec:
+  interval: 12h
+  url: oci://ghcr.io/victoriametrics/helm-charts/victoria-metrics-operator
+  ref:
+    tag: 0.68.1
+  layerSelector:
+    mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
+    operation: copy
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: victoria-metrics-operator
+  namespace: monitoring
+spec:
+  interval: 1h
+  # The validating webhook's certificate comes from cert-manager.
+  dependsOn:
+    - name: cert-manager
+      namespace: cert-manager
+  chartRef:
+    kind: OCIRepository
+    name: victoria-metrics-operator
+  install:
+    crds: CreateReplace
+  upgrade:
+    crds: CreateReplace
+  values:
+    fullnameOverride: vm-operator
+    # CRDs from the chart's crds/ directory, so Helm installs them before anything else and Flux replaces them on upgrade.
+    crds:
+      plain: true
+    admissionWebhooks:
+      certManager:
+        enabled: true
+    resources:
+      requests: { cpu: 20m, memory: 64Mi }

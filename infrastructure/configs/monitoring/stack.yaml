@@ -1,0 +1,182 @@
+# victoria-metrics-k8s-stack: VMSingle (storage), vmagent (scraping), vmalert + Alertmanager (rules; no receiver yet,
+# Telegram is infra#75), node-exporter, kube-state-metrics and Grafana. The operator itself is a separate release in
+# infrastructure/controllers. Dashboards and rules are fetched from upstream by the chart's sync Job at deploy time.
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: victoria-metrics-k8s-stack
+  namespace: monitoring
+spec:
+  interval: 12h
+  url: oci://ghcr.io/victoriametrics/helm-charts/victoria-metrics-k8s-stack
+  ref:
+    tag: 0.96.0
+  layerSelector:
+    mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
+    operation: copy
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: vm
+  namespace: monitoring
+spec:
+  interval: 1h
+  timeout: 10m
+  chartRef:
+    kind: OCIRepository
+    name: victoria-metrics-k8s-stack
+  values:
+    fullnameOverride: vm
+    global:
+      clusterLabel: cluster
+    # Links in alerts (vmalert external.url) point at Grafana.
+    external:
+      grafana:
+        host: https://grafana.int.bulbashenko.com
+
+    # Installed by infrastructure/controllers/victoria-metrics-operator.yaml.
+    victoria-metrics-operator:
+      enabled: false
+
+    defaultDashboards:
+      sources:
+        # Enabled by the operator subchart's switch by default; the operator runs, just not from this chart.
+        victoriametrics-operator:
+          enabled: true
+    defaultRules:
+      groups:
+        # k3s runs no etcd (sqlite datastore).
+        etcd:
+          enabled: false
+      sources:
+        vmoperator:
+          enabled: true
+
+    vmsingle:
+      spec:
+        # Disk on every node is 40 GB; ~3 GB expected for 30 days at a 30 s scrape interval.
+        retentionPeriod: 30d
+        storage:
+          resources:
+            requests:
+              storage: 10Gi
+        resources:
+          requests: { cpu: 50m, memory: 256Mi }
+          limits: { memory: 768Mi }
+
+    vmagent:
+      spec:
+        scrapeInterval: 30s
+        externalLabels:
+          cluster: hel1
+        resources:
+          requests: { cpu: 30m, memory: 128Mi }
+          limits: { memory: 384Mi }
+
+    vmalert:
+      spec:
+        evaluationInterval: 30s
+        resources:
+          requests: { cpu: 10m, memory: 48Mi }
+
+    alertmanager:
+      spec:
+        externalURL: ""
+        resources:
+          requests: { cpu: 10m, memory: 32Mi }
+
+    # k3s runs the controller manager, scheduler and kube-proxy inside the k3s process, bound to localhost:
+    # nothing to scrape from the pod network.
+    kubeControllerManager:
+      enabled: false
+    kubeScheduler:
+      enabled: false
+    kubeProxy:
+      enabled: false
+    kubeEtcd:
+      enabled: false
+
+    prometheus-node-exporter:
+      resources:
+        requests: { cpu: 10m, memory: 24Mi }
+
+    kube-state-metrics:
+      # Ownership labels (README: Labels) as label_bulbashenko_com_* on kube_namespace_labels / kube_pod_labels,
+      # for the "Cluster by layer" dashboard.
+      metricLabelsAllowlist:
+        - namespaces=[bulbashenko.com/layer,bulbashenko.com/app]
+        - pods=[bulbashenko.com/layer,bulbashenko.com/app]
+      resources:
+        requests: { cpu: 10m, memory: 48Mi }
+
+    defaultDatasources:
+      victoriametrics:
+        # Plain Prometheus datasource only: the VictoriaMetrics plugin would be downloaded at every pod start.
+        datasources:
+          - name: VictoriaMetrics
+            type: prometheus
+            access: proxy
+            uid: VictoriaMetrics
+            isDefault: true
+
+    grafana:
+      fullnameOverride: grafana
+      testFramework:
+        enabled: false
+      # No PVC: dashboards and datasources are provisioned from git, people sign in through Ory.
+      persistence:
+        enabled: false
+      resources:
+        requests: { cpu: 20m, memory: 128Mi }
+        limits: { memory: 384Mi }
+      # Local admin: used by the dashboard/datasource sidecars (basic auth against the reload API) and as break-glass
+      # sign-in at /login?disableAutoLogin if Ory is down; the login form is hidden otherwise.
+      admin:
+        existingSecret: grafana
+        userKey: admin-user
+        passwordKey: admin-password
+      envValueFrom:
+        GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET:
+          secretKeyRef: { name: grafana, key: oidc-client-secret }
+      sidecar:
+        dashboards:
+          # Dashboards from this directory land in their own folder (see grafana-dashboards in kustomization.yaml).
+          folderAnnotation: grafana_folder
+          provider:
+            foldersFromFilesStructure: true
+      grafana.ini:
+        server:
+          root_url: https://grafana.int.bulbashenko.com
+        analytics:
+          reporting_enabled: false
+          check_for_updates: false
+          check_for_plugin_updates: false
+        news:
+          news_feed_enabled: false
+        users:
+          allow_sign_up: false
+        auth:
+          disable_login_form: true
+          signout_redirect_url: https://auth.bulbashenko.com/oauth2/sessions/logout
+        # Ory Hydra (client `grafana` in bulbashenko-com/auth). Only infra-admins pass consent, and they get
+        # Grafana server admin.
+        auth.generic_oauth:
+          enabled: true
+          name: bulbashenko SSO
+          auto_login: true
+          allow_sign_up: true
+          client_id: grafana
+          scopes: openid profile email groups
+          auth_url: https://auth.bulbashenko.com/oauth2/auth
+          token_url: https://auth.bulbashenko.com/oauth2/token
+          api_url: https://auth.bulbashenko.com/userinfo
+          auth_style: InHeader
+          use_pkce: true
+          login_attribute_path: preferred_username
+          email_attribute_path: email
+          name_attribute_path: name
+          groups_attribute_path: groups
+          role_attribute_path: contains(groups[*], 'infra-admins') && 'GrafanaAdmin' || 'Viewer'
+          role_attribute_strict: true
+          allow_assign_grafana_admin: true
