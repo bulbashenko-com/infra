@@ -1,0 +1,49 @@
+# Reusable: the app repos call this after a push to main (and after their image is pushed)
+# to ask infra for a production deploy PR (promote.yml). Usage in an app repo:
+#
+#   promote:
+#     needs: <build job>
+#     uses: bulbashenko-com/infra/.github/workflows/request-promote.yml@main
+#     with: { app: site, sha: "${{ github.sha }}" }
+#     secrets: inherit
+#
+# Needs the org variable DEPLOY_APP_CLIENT_ID and secret DEPLOY_APP_PRIVATE_KEY (deploy GitHub App, installed on infra).
+name: request-promote
+
+on:
+  workflow_call:
+    inputs:
+      app:
+        type: string
+        required: true
+      sha:
+        type: string
+        required: true
+    secrets:
+      DEPLOY_APP_PRIVATE_KEY:
+        required: true
+
+permissions: {}
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/create-github-app-token@v3
+        id: token
+        with:
+          client-id: ${{ vars.DEPLOY_APP_CLIENT_ID }}
+          private-key: ${{ secrets.DEPLOY_APP_PRIVATE_KEY }}
+          owner: bulbashenko-com
+          repositories: infra
+          permission-contents: write
+      - name: Ask infra for a deploy PR
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+          APP: ${{ inputs.app }}
+          SHA: ${{ inputs.sha }}
+        run: |
+          gh api repos/bulbashenko-com/infra/dispatches -f event_type=promote \
+            -f "client_payload[app]=$APP" -f "client_payload[sha]=$SHA"
+          echo "Deploy PR for $APP@${SHA:0:7} requested: https://github.com/bulbashenko-com/infra/pulls?q=is%3Aopen+head%3Adeploy%2F$APP" >> "$GITHUB_STEP_SUMMARY"

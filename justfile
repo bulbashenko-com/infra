@@ -59,6 +59,15 @@ node-key:
     printf '%s' "$key" | jq -Rs . | sops set --value-stdin terraform/secrets.sops.env '["TF_VAR_tailscale_authkey"]'
     echo "pre-auth key stored (expires in 30 min): run just apply now"
 
+# ask for a production deploy PR pinning <app> to <sha> (default: the app's latest main); the owner merges it
+promote app sha="":
+    gh workflow run promote.yml -R bulbashenko-com/infra -f app={{app}} -f sha={{sha}}
+    @echo "PR: https://github.com/bulbashenko-com/infra/pulls?q=is%3Aopen+head%3Adeploy%2F{{app}}"
+
+# preview the deploy PR (diff + text) locally without writing anything
+promote-dry app sha="":
+    DRY_RUN=1 scripts/promote.sh {{app}} {{sha}}
+
 kube_admin := env_var('HOME') / ".kube/hel1-admin.yaml"
 
 # one-time: install Flux Operator, the cluster SOPS key and the FluxInstance (owner, admin kubeconfig)

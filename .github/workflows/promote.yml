@@ -1,0 +1,45 @@
+# Opens or refreshes the production deploy PR for an app (branch deploy/<app>, scripts/promote.sh).
+# Triggered by the app repos after a push to main (request-promote.yml), or by hand: `just promote <app> [sha]`.
+# The owner decides: merge = deploy, close = skip. Never auto-merged.
+# The PR is created with the deploy GitHub App's token: PRs made with GITHUB_TOKEN would not run CI.
+name: promote
+
+on:
+  repository_dispatch:
+    types: [promote]
+  workflow_dispatch:
+    inputs:
+      app:
+        type: choice
+        options: [site, auth, mail, teamspeak]
+      sha:
+        description: Full commit SHA on the app's main (empty = latest main)
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  # One run per app at a time; a newer pending request replaces an older pending one.
+  group: promote-${{ github.event.client_payload.app || inputs.app }}
+  cancel-in-progress: false
+
+jobs:
+  pr:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/create-github-app-token@v3
+        id: token
+        with:
+          client-id: ${{ vars.DEPLOY_APP_CLIENT_ID }}
+          private-key: ${{ secrets.DEPLOY_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+      - name: Open or refresh the deploy PR
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+          APP: ${{ github.event.client_payload.app || inputs.app }}
+          SHA: ${{ github.event.client_payload.sha || inputs.sha }}
+        run: scripts/promote.sh "$APP" "$SHA"
