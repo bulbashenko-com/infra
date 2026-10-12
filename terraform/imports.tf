@@ -35,14 +35,6 @@ import {
   id = "135832241"
 }
 import {
-  to = hcloud_server.hel1_core
-  id = "61920492"
-}
-import {
-  to = hcloud_server.hel1_edge
-  id = "141245160"
-}
-import {
   to = hcloud_storage_box.backups
   id = "671089"
 }
