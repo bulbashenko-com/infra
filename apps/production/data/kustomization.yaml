@@ -20,6 +20,9 @@ resources:
   - garage-secret.sops.yaml
   - garage.yaml
   - garage-bootstrap.yaml
+  - garage-ha-secret.sops.yaml
+  - garage-ha.yaml
+  - garage-migrate.yaml
   - routes.yaml
   - backup.yaml
   - backup-initial.yaml
@@ -27,8 +30,14 @@ configMapGenerator:
   - name: garage-config
     files:
       - garage.toml
+  - name: garage-ha-config
+    files:
+      - garage.toml=garage-ha.toml
   - name: garage-bootstrap
     files:
       - garage-bootstrap.sh
+  - name: garage-migrate
+    files:
+      - garage-migrate.sh
 generatorOptions:
   disableNameSuffixHash: false

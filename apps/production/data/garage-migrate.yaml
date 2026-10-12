@@ -1,0 +1,56 @@
+# One-off copies of the single-node Garage into garage-ha: -1 before the cut-over, a later one after it
+# to pick up what was written in between. `garage-old` keeps addressing the old pod after `garage` moves.
+apiVersion: v1
+kind: Service
+metadata:
+  name: garage-old
+spec:
+  selector: { app: garage }
+  ports:
+    - { name: s3, port: 3900, targetPort: s3 }
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: garage-migrate-1
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: rclone
+          image: rclone/rclone:1.71.2
+          command: ["/bin/sh", "/scripts/garage-migrate.sh"]
+          envFrom:
+            - secretRef: { name: garage }
+          env:
+            - { name: HOME, value: /tmp }
+            - { name: RCLONE_CONFIG_OLD_TYPE, value: s3 }
+            - { name: RCLONE_CONFIG_OLD_PROVIDER, value: Other }
+            - { name: RCLONE_CONFIG_OLD_ENDPOINT, value: "http://garage-old.data.svc.cluster.local:3900" }
+            - { name: RCLONE_CONFIG_OLD_REGION, value: garage }
+            - { name: RCLONE_CONFIG_OLD_FORCE_PATH_STYLE, value: "true" }
+            - { name: RCLONE_CONFIG_NEW_TYPE, value: s3 }
+            - { name: RCLONE_CONFIG_NEW_PROVIDER, value: Other }
+            - { name: RCLONE_CONFIG_NEW_ENDPOINT, value: "http://garage-ha.data.svc.cluster.local:3900" }
+            - { name: RCLONE_CONFIG_NEW_REGION, value: garage }
+            - { name: RCLONE_CONFIG_NEW_FORCE_PATH_STYLE, value: "true" }
+          resources:
+            requests: { cpu: 20m, memory: 64Mi }
+            limits: { memory: 256Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          volumeMounts:
+            - { name: scripts, mountPath: /scripts }
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - name: scripts
+          configMap: { name: garage-migrate }
+        - { name: tmp, emptyDir: {} }

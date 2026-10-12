@@ -1,0 +1,172 @@
+# Replicated Garage (replication_factor 3): one pod per k8s node, each with a full copy on its local disk.
+# Any one node can go down: reads and writes still have a 2-of-3 quorum.
+# Runs next to the single-node `garage` StatefulSet until the cut-over (Service `garage` moves here).
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  # What Garage would create itself (src/rpc/kubernetes.rs); kept in git so Garage needs no cluster rights.
+  name: garagenodes.deuxfleurs.fr
+spec:
+  group: deuxfleurs.fr
+  names: { kind: GarageNode, listKind: GarageNodeList, plural: garagenodes, singular: garagenode }
+  scope: Namespaced
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          required: [spec]
+          properties:
+            spec:
+              type: object
+              required: [hostname, address, port]
+              properties:
+                hostname: { type: string }
+                address: { type: string }
+                port: { type: integer, minimum: 0, maximum: 65535 }
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: garage-ha
+---
+# Each node publishes its own GarageNode (name = node public key, spec = pod IP) and lists the others.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: garage-ha
+rules:
+  - apiGroups: [deuxfleurs.fr]
+    resources: [garagenodes]
+    verbs: [get, list, watch, create, update, patch, delete]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: garage-ha
+roleRef: { apiGroup: rbac.authorization.k8s.io, kind: Role, name: garage-ha }
+subjects:
+  - { kind: ServiceAccount, name: garage-ha }
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: garage-ha
+spec:
+  serviceName: garage-ha
+  replicas: 3
+  # All three start together: none is ready (/health = 503) until the layout includes all of them.
+  podManagementPolicy: Parallel
+  selector:
+    matchLabels: { app: garage-ha }
+  template:
+    metadata:
+      labels: { app: garage-ha, bulbashenko.com/layer: app, bulbashenko.com/app: data }
+    spec:
+      serviceAccountName: garage-ha
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector: { matchLabels: { app: garage-ha } }
+              topologyKey: kubernetes.io/hostname
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: garage
+          image: dxflrs/garage:v2.1.0
+          args: ["/garage", "-c", "/etc/garage/garage.toml", "server"]
+          envFrom:
+            - secretRef: { name: garage }
+          env:
+            # Its own RPC secret: the two Garage clusters must never join each other.
+            - { name: GARAGE_RPC_SECRET, valueFrom: { secretKeyRef: { name: garage-ha, key: GARAGE_RPC_SECRET } } }
+          ports:
+            - { name: s3, containerPort: 3900 }
+            - { name: rpc, containerPort: 3901 }
+            - { name: web, containerPort: 3902 }
+            - { name: admin, containerPort: 3903 }
+          readinessProbe:
+            httpGet: { path: /health, port: admin }
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 20m, memory: 64Mi }
+            limits: { memory: 512Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          volumeMounts:
+            - { name: config, mountPath: /etc/garage }
+            - { name: meta, mountPath: /var/lib/garage/meta }
+            - { name: data, mountPath: /var/lib/garage/data }
+      volumes:
+        - name: config
+          configMap: { name: garage-ha-config }
+  volumeClaimTemplates:
+    - metadata: { name: meta }
+      spec:
+        accessModes: [ReadWriteOnce]
+        storageClassName: local-path
+        resources: { requests: { storage: 1Gi } }
+    - metadata: { name: data }
+      spec:
+        accessModes: [ReadWriteOnce]
+        storageClassName: local-path
+        resources: { requests: { storage: 10Gi } }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: garage-ha
+spec:
+  selector: { app: garage-ha }
+  ports:
+    - { name: s3, port: 3900, targetPort: s3 }
+    - { name: web, port: 3902, targetPort: web }
+    - { name: admin, port: 3903, targetPort: admin }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: garage-ha-admin
+spec:
+  selector: { app: garage-ha }
+  publishNotReadyAddresses: true
+  ports:
+    - { name: admin, port: 3903, targetPort: admin }
+---
+# Same script as garage-bootstrap: layout over all three nodes, then the same buckets, aliases and keys
+# (imported with the same IDs, so clients keep their credentials across the cut-over).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: garage-ha-bootstrap
+  annotations:
+    kustomize.toolkit.fluxcd.io/force: enabled
+spec:
+  backoffLimit: 6
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: bootstrap
+          image: alpine:3.22
+          command: ["/bin/sh", "/scripts/garage-bootstrap.sh"]
+          envFrom:
+            - secretRef: { name: garage }
+          env:
+            - { name: GARAGE_ADMIN_URL, value: "http://garage-ha-admin:3903" }
+            - { name: GARAGE_NODES, value: "3" }
+          volumeMounts:
+            - { name: scripts, mountPath: /scripts }
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+      volumes:
+        - name: scripts
+          configMap: { name: garage-bootstrap }
