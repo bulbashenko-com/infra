@@ -139,9 +139,10 @@ spec:
       # No PVC: dashboards and datasources are provisioned from git, people sign in through Ory.
       persistence:
         enabled: false
+      # Grafana 13 with the GitHub plugin sits around 380Mi; 384Mi got it OOMKilled.
       resources:
-        requests: { cpu: 20m, memory: 128Mi }
-        limits: { memory: 384Mi }
+        requests: { cpu: 20m, memory: 256Mi }
+        limits: { memory: 768Mi }
       # Local admin: used by the dashboard/datasource sidecars (basic auth against the reload API) and as break-glass
       # sign-in at /login?disableAutoLogin if Ory is down; the login form is hidden otherwise.
       # Its login must not match any Ory username: Grafana refuses to create an SSO user whose login or email is

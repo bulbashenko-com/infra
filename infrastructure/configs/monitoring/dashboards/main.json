@@ -149,7 +149,7 @@
    "id": 4,
    "type": "stat",
    "title": "Поды не готовы",
-   "description": "",
+   "description": "Без завершённых подов Job/CronJob.",
    "datasource": {
     "type": "prometheus",
     "uid": "VictoriaMetrics"
@@ -199,7 +199,7 @@
       "type": "prometheus",
       "uid": "VictoriaMetrics"
      },
-     "expr": "sum(kube_pod_status_ready{condition=\"false\"}) or vector(0)",
+     "expr": "count((kube_pod_status_ready{condition=\"false\"} == 1) unless on (namespace, pod) (kube_pod_status_phase{phase=\"Succeeded\"} == 1)) or vector(0)",
      "instant": true
     }
    ]
@@ -520,8 +520,8 @@
   {
    "id": 11,
    "type": "stat",
-   "title": "Обычно длится деплой",
-   "description": "Медиана синхронизации Kustomization приложений за 7 дней (включая ожидание готовности подов). Не ETA, а ориентир.",
+   "title": "Последний деплой, назад",
+   "description": "Когда последний раз выкатилась новая версия приложения (новый ReplicaSet). Время деплоя уходит в основном на CI (таблицы CI/CD ниже), выкатка в кластере — секунды.",
    "datasource": {
     "type": "prometheus",
     "uid": "VictoriaMetrics"
@@ -567,7 +567,7 @@
       "type": "prometheus",
       "uid": "VictoriaMetrics"
      },
-     "expr": "histogram_quantile(0.5, sum by (le) (rate(gotk_reconcile_duration_seconds_bucket{kind=\"Kustomization\", name=~\"site|auth|mail|teamspeak\"}[7d])))",
+     "expr": "time() - max(kube_replicaset_created{namespace=~\"site|auth|mail|teamspeak\"})",
      "instant": true
     }
    ]
@@ -1871,7 +1871,7 @@
       "type": "prometheus",
       "uid": "VictoriaMetrics"
      },
-     "expr": "max(cnpg_pg_stat_archiver_seconds_since_last_archival * on (pod) group_left () (cnpg_pg_replication_in_recovery == 0)) / 60",
+     "expr": "max(cnpg_pg_stat_archiver_seconds_since_last_archival and on (pod) (cnpg_pg_replication_in_recovery == 0)) / 60",
      "instant": true
     }
    ]
@@ -2113,7 +2113,7 @@
       "type": "prometheus",
       "uid": "VictoriaMetrics"
      },
-     "expr": "max(cnpg_pg_replication_streaming_replicas * on (pod) group_left () (cnpg_pg_replication_in_recovery == 0))",
+     "expr": "max(cnpg_pg_replication_streaming_replicas and on (pod) (cnpg_pg_replication_in_recovery == 0))",
      "instant": true
     }
    ]
@@ -2607,7 +2607,7 @@
       "type": "prometheus",
       "uid": "VictoriaMetrics"
      },
-     "expr": "sum by (datname) (cnpg_backends_total * on (pod) group_left () (cnpg_pg_replication_in_recovery == 0))",
+     "expr": "sum by (datname) (cnpg_backends_total and on (pod) (cnpg_pg_replication_in_recovery == 0))",
      "legendFormat": "{{datname}}"
     }
    ]
