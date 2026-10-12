@@ -43,7 +43,7 @@ spec:
   interval: 10m
   url: https://github.com/bulbashenko-com/mail.git
   ref:
-    commit: e97bd7f0c2bea71210a290b9c9d96991dbff8787
+    commit: 1e8dd7581d77e0ff0f14d0eb46965dc5f202725a
   ignore: |
     /*
     !/kustomization.yaml

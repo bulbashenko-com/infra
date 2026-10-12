@@ -4,6 +4,9 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: stalwart-import
+  annotations:
+    # Recreate the (immutable) Job when its spec changes.
+    kustomize.toolkit.fluxcd.io/force: enabled
 spec:
   backoffLimit: 1
   template:
@@ -41,8 +44,9 @@ spec:
             requests: { cpu: 100m, memory: 256Mi }
             limits: { memory: 2Gi }
           securityContext:
-            allowPrivilegeEscalation: false
-            capabilities: { drop: [ALL] }
+            # cap_net_bind_service is a file capability of the binary; exec fails unless it can be granted.
+            allowPrivilegeEscalation: true
+            capabilities: { drop: [ALL], add: [NET_BIND_SERVICE] }
           volumeMounts:
             - { name: config, mountPath: /etc/stalwart }
             - { name: export, mountPath: /export }
