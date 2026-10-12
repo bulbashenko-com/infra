@@ -69,7 +69,12 @@ Alertmanager, node-exporter, kube-state-metrics, Grafana).
   chart's sync Job. Break-glass: `/login?disableAutoLogin` with the local admin from the Secret `grafana`.
 - "Главное" (`infrastructure/configs/monitoring/dashboards/main.json`, Grafana's home page): everything on one page:
   status, backups and data, nodes, layers and apps, traffic, mail, GitOps, scrape targets. Upstream dashboards (Node
-  Exporter Full, Kubernetes views, VictoriaMetrics) stay for drilling down.
+  Exporter Full, Kubernetes views, VictoriaMetrics) stay for drilling down. The JSON is generated: edit
+  `scripts/dashboard-main.py` and run it (usage in the file), don't hand-edit the JSON.
+- Deploys on the same page: Flux versions and status, rollout progress, typical deploy duration, open PRs and
+  GitHub Actions runs (GitHub datasource through the read-only GitHub App `bulbashenko-com-grafana`, credentials in the
+  Secret `grafana`: `github-app-id`, `github-app-installation-id`, `github-app-private-key`). Every graph carries
+  deploy markers built from metrics, so they survive Grafana restarts.
 - Scrape targets: platform components in `infrastructure/configs/monitoring/scrapes.yaml`; app targets next to the app
   (`apps/production/data/scrapes.yaml` for CNPG and Garage, `apps/mail/scrape.yaml` for Stalwart).
 - Alerts: upstream rules (synced by the chart) plus ours in `infrastructure/configs/monitoring/rules.yaml` (backups,

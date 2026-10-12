@@ -384,7 +384,7 @@
   {
    "id": 8,
    "type": "row",
-   "title": "Бэкапы и данные",
+   "title": "Деплои",
    "collapsed": false,
    "gridPos": {
     "x": 0,
@@ -397,6 +397,1368 @@
   {
    "id": 9,
    "type": "stat",
+   "title": "Сейчас деплоится",
+   "description": "Объекты Flux в процессе применения плюс Deployment/StatefulSet, у которых ещё не все поды новые.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "VictoriaMetrics"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 6,
+    "w": 4,
+    "h": 4
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "none",
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       },
+       {
+        "color": "blue",
+        "value": 1
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ]
+    },
+    "colorMode": "background",
+    "graphMode": "none",
+    "textMode": "value"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "VictoriaMetrics"
+     },
+     "expr": "(count(flux_resource_info{kind=~\"Kustomization|HelmRelease\", ready=\"Unknown\"}) or vector(0)) + (count(kube_deployment_status_replicas_updated < kube_deployment_spec_replicas) or vector(0)) + (count(kube_statefulset_status_replicas_updated < kube_statefulset_replicas) or vector(0))",
+     "instant": true
+    }
+   ]
+  },
+  {
+   "id": 10,
+   "type": "table",
+   "title": "Версии и статус (Flux)",
+   "description": "revision = коммит/версия, которую Flux применил. ready=Unknown — идёт применение.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "VictoriaMetrics"
+   },
+   "gridPos": {
+    "x": 4,
+    "y": 6,
+    "w": 20,
+    "h": 8
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "none",
+     "custom": {
+      "cellOptions": {
+       "type": "color-text"
+      }
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "sortBy": [
+     {
+      "displayName": "Value",
+      "desc": true
+     }
+    ]
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "VictoriaMetrics"
+     },
+     "expr": "max by (kind, name, ready, suspended, revision) (flux_resource_info{kind=~\"Kustomization|HelmRelease\"})",
+     "instant": true,
+     "format": "table"
+    }
+   ],
+   "transformations": [
+    {
+     "id": "organize",
+     "options": {
+      "excludeByName": {
+       "Time": true
+      },
+      "renameByName": {
+       "kind": "Тип",
+       "name": "Имя",
+       "ready": "Ready",
+       "suspended": "Пауза",
+       "revision": "Версия"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": 11,
+   "type": "stat",
+   "title": "Обычно длится деплой",
+   "description": "Медиана синхронизации Kustomization приложений за 7 дней (включая ожидание готовности подов). Не ETA, а ориентир.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "VictoriaMetrics"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 10,
+    "w": 4,
+    "h": 4
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s",
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "blue",
+        "value": null
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ]
+    },
+    "colorMode": "background",
+    "graphMode": "none",
+    "textMode": "value"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "VictoriaMetrics"
+     },
+     "expr": "histogram_quantile(0.5, sum by (le) (rate(gotk_reconcile_duration_seconds_bucket{kind=\"Kustomization\", name=~\"site|auth|mail|teamspeak\"}[7d])))",
+     "instant": true
+    }
+   ]
+  },
+  {
+   "id": 12,
+   "type": "bargauge",
+   "title": "Выкатка: новые поды готовы",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "VictoriaMetrics"
+   },
+   "description": "Доля подов новой версии, которые уже обновлены и доступны. Меньше 100% — выкатка идёт или застряла.",
+   "gridPos": {
+    "x": 0,
+    "y": 14,
+    "w": 12,
+    "h": 8
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "percentunit",
+     "min": 0,
+     "max": 1,
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "orange",
+        "value": null
+       },
+       {
+        "color": "green",
+        "value": 1
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "orientation": "horizontal",
+    "displayMode": "basic",
+    "showUnfilled": true,
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ]
+    }
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "VictoriaMetrics"
+     },
+     "instant": true,
+     "legendFormat": "{{namespace}}/{{deployment}}",
+     "expr": "clamp_max(min by (namespace, deployment) (kube_deployment_status_replicas_updated) / max by (namespace, deployment) (kube_deployment_spec_replicas > 0), 1) * on (namespace) group_left () max by (namespace) (kube_namespace_labels{label_bulbashenko_com_layer=~\"app|platform\"})"
+    },
+    {
+     "refId": "B",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "VictoriaMetrics"
+     },
+     "instant": true,
+     "legendFormat": "{{namespace}}/{{statefulset}}",
+     "expr": "clamp_max(min by (namespace, statefulset) (kube_statefulset_status_replicas_updated) / max by (namespace, statefulset) (kube_statefulset_replicas > 0), 1) * on (namespace) group_left () max by (namespace) (kube_namespace_labels{label_bulbashenko_com_layer=~\"app|platform\"})"
+    }
+   ]
+  },
+  {
+   "id": 13,
+   "type": "table",
+   "title": "Ждут мержа (открытые PR в организации)",
+   "datasource": {
+    "type": "grafana-github-datasource",
+    "uid": "github"
+   },
+   "description": "Deploy-PR в infra и остальные открытые PR. Мерж deploy-PR = деплой.",
+   "gridPos": {
+    "x": 12,
+    "y": 14,
+    "w": 12,
+    "h": 8
+   },
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": [
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "title"
+      },
+      "properties": [
+       {
+        "id": "links",
+        "value": [
+         {
+          "title": "Открыть PR",
+          "url": "${__data.fields.url}",
+          "targetBlank": true
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "options": {
+    "sortBy": [
+     {
+      "displayName": "created_at",
+      "desc": true
+     }
+    ]
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "grafana-github-datasource",
+      "uid": "github"
+     },
+     "queryType": "Pull_Requests",
+     "owner": "bulbashenko-com",
+     "repository": "",
+     "options": {
+      "query": "is:open",
+      "timeField": 4
+     }
+    }
+   ],
+   "transformations": [
+    {
+     "id": "organize",
+     "options": {
+      "includeByName": {
+       "repository": true,
+       "number": true,
+       "title": true,
+       "author_login": true,
+       "is_draft": true,
+       "created_at": true
+      },
+      "indexByName": {
+       "repository": 0,
+       "number": 1,
+       "title": 2,
+       "author_login": 3,
+       "is_draft": 4,
+       "created_at": 5
+      },
+      "renameByName": {
+       "repository": "Репозиторий",
+       "number": "#",
+       "title": "PR",
+       "author_login": "Автор",
+       "is_draft": "Черновик",
+       "created_at": "Открыт"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": 14,
+   "type": "table",
+   "title": "CI/CD: site",
+   "datasource": {
+    "type": "grafana-github-datasource",
+    "uid": "github"
+   },
+   "timeFrom": "3d",
+   "description": "Запуски GitHub Actions за 3 дня. Длительность = updated_at − run_started_at.",
+   "gridPos": {
+    "x": 0,
+    "y": 22,
+    "w": 8,
+    "h": 7
+   },
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": [
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "name"
+      },
+      "properties": [
+       {
+        "id": "links",
+        "value": [
+         {
+          "title": "Открыть запуск",
+          "url": "${__data.fields.html_url}",
+          "targetBlank": true
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "Длительность"
+      },
+      "properties": [
+       {
+        "id": "unit",
+        "value": "ms"
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "conclusion"
+      },
+      "properties": [
+       {
+        "id": "custom.cellOptions",
+        "value": {
+         "type": "color-text"
+        }
+       },
+       {
+        "id": "mappings",
+        "value": [
+         {
+          "type": "value",
+          "options": {
+           "success": {
+            "color": "green",
+            "text": "✓"
+           },
+           "failure": {
+            "color": "red",
+            "text": "✗"
+           },
+           "cancelled": {
+            "color": "gray",
+            "text": "отменён"
+           },
+           "skipped": {
+            "color": "gray",
+            "text": "пропущен"
+           }
+          }
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "status"
+      },
+      "properties": [
+       {
+        "id": "mappings",
+        "value": [
+         {
+          "type": "value",
+          "options": {
+           "in_progress": {
+            "color": "blue",
+            "text": "идёт"
+           },
+           "queued": {
+            "color": "blue",
+            "text": "в очереди"
+           },
+           "completed": {
+            "text": "готово"
+           }
+          }
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "options": {
+    "sortBy": [
+     {
+      "displayName": "run_started_at",
+      "desc": true
+     }
+    ]
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "grafana-github-datasource",
+      "uid": "github"
+     },
+     "queryType": "Workflow_Runs",
+     "owner": "bulbashenko-com",
+     "repository": "site",
+     "options": {
+      "workflow": "deploy.yml",
+      "workflowID": "deploy.yml",
+      "branch": "main"
+     }
+    }
+   ],
+   "transformations": [
+    {
+     "id": "merge",
+     "options": {}
+    },
+    {
+     "id": "calculateField",
+     "options": {
+      "mode": "binary",
+      "alias": "Длительность",
+      "binary": {
+       "left": "updated_at",
+       "operator": "-",
+       "right": "run_started_at"
+      }
+     }
+    },
+    {
+     "id": "organize",
+     "options": {
+      "includeByName": {
+       "name": true,
+       "head_sha": true,
+       "event": true,
+       "status": true,
+       "conclusion": true,
+       "run_started_at": true,
+       "Длительность": true
+      },
+      "indexByName": {
+       "name": 0,
+       "status": 1,
+       "conclusion": 2,
+       "head_sha": 3,
+       "event": 4,
+       "run_started_at": 5,
+       "Длительность": 6
+      },
+      "renameByName": {
+       "name": "Workflow",
+       "head_sha": "Коммит",
+       "event": "Событие",
+       "status": "Статус",
+       "conclusion": "Итог",
+       "run_started_at": "Старт"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": 15,
+   "type": "table",
+   "title": "CI/CD: auth",
+   "datasource": {
+    "type": "grafana-github-datasource",
+    "uid": "github"
+   },
+   "timeFrom": "3d",
+   "description": "Запуски GitHub Actions за 3 дня. Длительность = updated_at − run_started_at.",
+   "gridPos": {
+    "x": 8,
+    "y": 22,
+    "w": 8,
+    "h": 7
+   },
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": [
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "name"
+      },
+      "properties": [
+       {
+        "id": "links",
+        "value": [
+         {
+          "title": "Открыть запуск",
+          "url": "${__data.fields.html_url}",
+          "targetBlank": true
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "Длительность"
+      },
+      "properties": [
+       {
+        "id": "unit",
+        "value": "ms"
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "conclusion"
+      },
+      "properties": [
+       {
+        "id": "custom.cellOptions",
+        "value": {
+         "type": "color-text"
+        }
+       },
+       {
+        "id": "mappings",
+        "value": [
+         {
+          "type": "value",
+          "options": {
+           "success": {
+            "color": "green",
+            "text": "✓"
+           },
+           "failure": {
+            "color": "red",
+            "text": "✗"
+           },
+           "cancelled": {
+            "color": "gray",
+            "text": "отменён"
+           },
+           "skipped": {
+            "color": "gray",
+            "text": "пропущен"
+           }
+          }
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "status"
+      },
+      "properties": [
+       {
+        "id": "mappings",
+        "value": [
+         {
+          "type": "value",
+          "options": {
+           "in_progress": {
+            "color": "blue",
+            "text": "идёт"
+           },
+           "queued": {
+            "color": "blue",
+            "text": "в очереди"
+           },
+           "completed": {
+            "text": "готово"
+           }
+          }
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "options": {
+    "sortBy": [
+     {
+      "displayName": "run_started_at",
+      "desc": true
+     }
+    ]
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "grafana-github-datasource",
+      "uid": "github"
+     },
+     "queryType": "Workflow_Runs",
+     "owner": "bulbashenko-com",
+     "repository": "auth",
+     "options": {
+      "workflow": "test.yml",
+      "workflowID": "test.yml",
+      "branch": "main"
+     }
+    },
+    {
+     "refId": "B",
+     "datasource": {
+      "type": "grafana-github-datasource",
+      "uid": "github"
+     },
+     "queryType": "Workflow_Runs",
+     "owner": "bulbashenko-com",
+     "repository": "auth",
+     "options": {
+      "workflow": "image.yml",
+      "workflowID": "image.yml",
+      "branch": "main"
+     }
+    }
+   ],
+   "transformations": [
+    {
+     "id": "merge",
+     "options": {}
+    },
+    {
+     "id": "calculateField",
+     "options": {
+      "mode": "binary",
+      "alias": "Длительность",
+      "binary": {
+       "left": "updated_at",
+       "operator": "-",
+       "right": "run_started_at"
+      }
+     }
+    },
+    {
+     "id": "organize",
+     "options": {
+      "includeByName": {
+       "name": true,
+       "head_sha": true,
+       "event": true,
+       "status": true,
+       "conclusion": true,
+       "run_started_at": true,
+       "Длительность": true
+      },
+      "indexByName": {
+       "name": 0,
+       "status": 1,
+       "conclusion": 2,
+       "head_sha": 3,
+       "event": 4,
+       "run_started_at": 5,
+       "Длительность": 6
+      },
+      "renameByName": {
+       "name": "Workflow",
+       "head_sha": "Коммит",
+       "event": "Событие",
+       "status": "Статус",
+       "conclusion": "Итог",
+       "run_started_at": "Старт"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": 16,
+   "type": "table",
+   "title": "CI/CD: infra (deploy-PR и проверки)",
+   "datasource": {
+    "type": "grafana-github-datasource",
+    "uid": "github"
+   },
+   "timeFrom": "3d",
+   "description": "Запуски GitHub Actions за 3 дня. Длительность = updated_at − run_started_at.",
+   "gridPos": {
+    "x": 16,
+    "y": 22,
+    "w": 8,
+    "h": 7
+   },
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": [
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "name"
+      },
+      "properties": [
+       {
+        "id": "links",
+        "value": [
+         {
+          "title": "Открыть запуск",
+          "url": "${__data.fields.html_url}",
+          "targetBlank": true
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "Длительность"
+      },
+      "properties": [
+       {
+        "id": "unit",
+        "value": "ms"
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "conclusion"
+      },
+      "properties": [
+       {
+        "id": "custom.cellOptions",
+        "value": {
+         "type": "color-text"
+        }
+       },
+       {
+        "id": "mappings",
+        "value": [
+         {
+          "type": "value",
+          "options": {
+           "success": {
+            "color": "green",
+            "text": "✓"
+           },
+           "failure": {
+            "color": "red",
+            "text": "✗"
+           },
+           "cancelled": {
+            "color": "gray",
+            "text": "отменён"
+           },
+           "skipped": {
+            "color": "gray",
+            "text": "пропущен"
+           }
+          }
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "status"
+      },
+      "properties": [
+       {
+        "id": "mappings",
+        "value": [
+         {
+          "type": "value",
+          "options": {
+           "in_progress": {
+            "color": "blue",
+            "text": "идёт"
+           },
+           "queued": {
+            "color": "blue",
+            "text": "в очереди"
+           },
+           "completed": {
+            "text": "готово"
+           }
+          }
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "options": {
+    "sortBy": [
+     {
+      "displayName": "run_started_at",
+      "desc": true
+     }
+    ]
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "grafana-github-datasource",
+      "uid": "github"
+     },
+     "queryType": "Workflow_Runs",
+     "owner": "bulbashenko-com",
+     "repository": "infra",
+     "options": {
+      "workflow": "promote.yml",
+      "workflowID": "promote.yml",
+      "branch": "main"
+     }
+    },
+    {
+     "refId": "B",
+     "datasource": {
+      "type": "grafana-github-datasource",
+      "uid": "github"
+     },
+     "queryType": "Workflow_Runs",
+     "owner": "bulbashenko-com",
+     "repository": "infra",
+     "options": {
+      "workflow": "ci.yml",
+      "workflowID": "ci.yml",
+      "branch": "main"
+     }
+    }
+   ],
+   "transformations": [
+    {
+     "id": "merge",
+     "options": {}
+    },
+    {
+     "id": "calculateField",
+     "options": {
+      "mode": "binary",
+      "alias": "Длительность",
+      "binary": {
+       "left": "updated_at",
+       "operator": "-",
+       "right": "run_started_at"
+      }
+     }
+    },
+    {
+     "id": "organize",
+     "options": {
+      "includeByName": {
+       "name": true,
+       "head_sha": true,
+       "event": true,
+       "status": true,
+       "conclusion": true,
+       "run_started_at": true,
+       "Длительность": true
+      },
+      "indexByName": {
+       "name": 0,
+       "status": 1,
+       "conclusion": 2,
+       "head_sha": 3,
+       "event": 4,
+       "run_started_at": 5,
+       "Длительность": 6
+      },
+      "renameByName": {
+       "name": "Workflow",
+       "head_sha": "Коммит",
+       "event": "Событие",
+       "status": "Статус",
+       "conclusion": "Итог",
+       "run_started_at": "Старт"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": 17,
+   "type": "table",
+   "title": "CI/CD: mail",
+   "datasource": {
+    "type": "grafana-github-datasource",
+    "uid": "github"
+   },
+   "timeFrom": "3d",
+   "description": "Запуски GitHub Actions за 3 дня. Длительность = updated_at − run_started_at.",
+   "gridPos": {
+    "x": 0,
+    "y": 29,
+    "w": 12,
+    "h": 7
+   },
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": [
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "name"
+      },
+      "properties": [
+       {
+        "id": "links",
+        "value": [
+         {
+          "title": "Открыть запуск",
+          "url": "${__data.fields.html_url}",
+          "targetBlank": true
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "Длительность"
+      },
+      "properties": [
+       {
+        "id": "unit",
+        "value": "ms"
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "conclusion"
+      },
+      "properties": [
+       {
+        "id": "custom.cellOptions",
+        "value": {
+         "type": "color-text"
+        }
+       },
+       {
+        "id": "mappings",
+        "value": [
+         {
+          "type": "value",
+          "options": {
+           "success": {
+            "color": "green",
+            "text": "✓"
+           },
+           "failure": {
+            "color": "red",
+            "text": "✗"
+           },
+           "cancelled": {
+            "color": "gray",
+            "text": "отменён"
+           },
+           "skipped": {
+            "color": "gray",
+            "text": "пропущен"
+           }
+          }
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "status"
+      },
+      "properties": [
+       {
+        "id": "mappings",
+        "value": [
+         {
+          "type": "value",
+          "options": {
+           "in_progress": {
+            "color": "blue",
+            "text": "идёт"
+           },
+           "queued": {
+            "color": "blue",
+            "text": "в очереди"
+           },
+           "completed": {
+            "text": "готово"
+           }
+          }
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "options": {
+    "sortBy": [
+     {
+      "displayName": "run_started_at",
+      "desc": true
+     }
+    ]
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "grafana-github-datasource",
+      "uid": "github"
+     },
+     "queryType": "Workflow_Runs",
+     "owner": "bulbashenko-com",
+     "repository": "mail",
+     "options": {
+      "workflow": "ci.yml",
+      "workflowID": "ci.yml",
+      "branch": "main"
+     }
+    }
+   ],
+   "transformations": [
+    {
+     "id": "merge",
+     "options": {}
+    },
+    {
+     "id": "calculateField",
+     "options": {
+      "mode": "binary",
+      "alias": "Длительность",
+      "binary": {
+       "left": "updated_at",
+       "operator": "-",
+       "right": "run_started_at"
+      }
+     }
+    },
+    {
+     "id": "organize",
+     "options": {
+      "includeByName": {
+       "name": true,
+       "head_sha": true,
+       "event": true,
+       "status": true,
+       "conclusion": true,
+       "run_started_at": true,
+       "Длительность": true
+      },
+      "indexByName": {
+       "name": 0,
+       "status": 1,
+       "conclusion": 2,
+       "head_sha": 3,
+       "event": 4,
+       "run_started_at": 5,
+       "Длительность": 6
+      },
+      "renameByName": {
+       "name": "Workflow",
+       "head_sha": "Коммит",
+       "event": "Событие",
+       "status": "Статус",
+       "conclusion": "Итог",
+       "run_started_at": "Старт"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": 18,
+   "type": "table",
+   "title": "CI/CD: teamspeak",
+   "datasource": {
+    "type": "grafana-github-datasource",
+    "uid": "github"
+   },
+   "timeFrom": "3d",
+   "description": "Запуски GitHub Actions за 3 дня. Длительность = updated_at − run_started_at.",
+   "gridPos": {
+    "x": 12,
+    "y": 29,
+    "w": 12,
+    "h": 7
+   },
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": [
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "name"
+      },
+      "properties": [
+       {
+        "id": "links",
+        "value": [
+         {
+          "title": "Открыть запуск",
+          "url": "${__data.fields.html_url}",
+          "targetBlank": true
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "Длительность"
+      },
+      "properties": [
+       {
+        "id": "unit",
+        "value": "ms"
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "conclusion"
+      },
+      "properties": [
+       {
+        "id": "custom.cellOptions",
+        "value": {
+         "type": "color-text"
+        }
+       },
+       {
+        "id": "mappings",
+        "value": [
+         {
+          "type": "value",
+          "options": {
+           "success": {
+            "color": "green",
+            "text": "✓"
+           },
+           "failure": {
+            "color": "red",
+            "text": "✗"
+           },
+           "cancelled": {
+            "color": "gray",
+            "text": "отменён"
+           },
+           "skipped": {
+            "color": "gray",
+            "text": "пропущен"
+           }
+          }
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "status"
+      },
+      "properties": [
+       {
+        "id": "mappings",
+        "value": [
+         {
+          "type": "value",
+          "options": {
+           "in_progress": {
+            "color": "blue",
+            "text": "идёт"
+           },
+           "queued": {
+            "color": "blue",
+            "text": "в очереди"
+           },
+           "completed": {
+            "text": "готово"
+           }
+          }
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "options": {
+    "sortBy": [
+     {
+      "displayName": "run_started_at",
+      "desc": true
+     }
+    ]
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "grafana-github-datasource",
+      "uid": "github"
+     },
+     "queryType": "Workflow_Runs",
+     "owner": "bulbashenko-com",
+     "repository": "teamspeak",
+     "options": {
+      "workflow": "ci.yml",
+      "workflowID": "ci.yml",
+      "branch": "main"
+     }
+    }
+   ],
+   "transformations": [
+    {
+     "id": "merge",
+     "options": {}
+    },
+    {
+     "id": "calculateField",
+     "options": {
+      "mode": "binary",
+      "alias": "Длительность",
+      "binary": {
+       "left": "updated_at",
+       "operator": "-",
+       "right": "run_started_at"
+      }
+     }
+    },
+    {
+     "id": "organize",
+     "options": {
+      "includeByName": {
+       "name": true,
+       "head_sha": true,
+       "event": true,
+       "status": true,
+       "conclusion": true,
+       "run_started_at": true,
+       "Длительность": true
+      },
+      "indexByName": {
+       "name": 0,
+       "status": 1,
+       "conclusion": 2,
+       "head_sha": 3,
+       "event": 4,
+       "run_started_at": 5,
+       "Длительность": 6
+      },
+      "renameByName": {
+       "name": "Workflow",
+       "head_sha": "Коммит",
+       "event": "Событие",
+       "status": "Статус",
+       "conclusion": "Итог",
+       "run_started_at": "Старт"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": 19,
+   "type": "row",
+   "title": "Бэкапы и данные",
+   "collapsed": false,
+   "gridPos": {
+    "x": 0,
+    "y": 36,
+    "w": 24,
+    "h": 1
+   },
+   "panels": []
+  },
+  {
+   "id": 20,
+   "type": "stat",
    "title": "Бэкап Postgres, ч назад",
    "description": "Последний успешный base backup в Garage (ScheduledBackup 03:00).",
    "datasource": {
@@ -405,7 +1767,7 @@
    },
    "gridPos": {
     "x": 0,
-    "y": 6,
+    "y": 37,
     "w": 4,
     "h": 4
    },
@@ -455,7 +1817,7 @@
    ]
   },
   {
-   "id": 10,
+   "id": 21,
    "type": "stat",
    "title": "WAL архивирован, мин назад",
    "description": "На primary. CNPG закрывает WAL-сегмент минимум раз в 5 минут.",
@@ -465,7 +1827,7 @@
    },
    "gridPos": {
     "x": 4,
-    "y": 6,
+    "y": 37,
     "w": 4,
     "h": 4
    },
@@ -515,7 +1877,7 @@
    ]
   },
   {
-   "id": 11,
+   "id": 22,
    "type": "stat",
    "title": "Off-site копия, ч назад",
    "description": "CronJob data/offsite-backup 04:00 → Storage Box.",
@@ -525,7 +1887,7 @@
    },
    "gridPos": {
     "x": 8,
-    "y": 6,
+    "y": 37,
     "w": 4,
     "h": 4
    },
@@ -575,7 +1937,7 @@
    ]
   },
   {
-   "id": 12,
+   "id": 23,
    "type": "stat",
    "title": "Бэкап томов, ч назад",
    "description": "Самый старый из headscale/teamspeak volume-backup 03:30.",
@@ -585,7 +1947,7 @@
    },
    "gridPos": {
     "x": 12,
-    "y": 6,
+    "y": 37,
     "w": 4,
     "h": 4
    },
@@ -635,7 +1997,7 @@
    ]
   },
   {
-   "id": 13,
+   "id": 24,
    "type": "stat",
    "title": "Отставание реплики",
    "description": "",
@@ -645,7 +2007,7 @@
    },
    "gridPos": {
     "x": 16,
-    "y": 6,
+    "y": 37,
     "w": 4,
     "h": 4
    },
@@ -698,7 +2060,7 @@
    ]
   },
   {
-   "id": 14,
+   "id": 25,
    "type": "stat",
    "title": "Реплик стримит",
    "description": "Сколько реплик подключено к primary (ожидается 1).",
@@ -708,7 +2070,7 @@
    },
    "gridPos": {
     "x": 20,
-    "y": 6,
+    "y": 37,
     "w": 4,
     "h": 4
    },
@@ -757,7 +2119,7 @@
    ]
   },
   {
-   "id": 15,
+   "id": 26,
    "type": "stat",
    "title": "Garage здоров",
    "description": "cluster_healthy: все узлы и разделы в порядке.",
@@ -767,7 +2129,7 @@
    },
    "gridPos": {
     "x": 0,
-    "y": 10,
+    "y": 41,
     "w": 4,
     "h": 4
    },
@@ -829,7 +2191,7 @@
    ]
   },
   {
-   "id": 16,
+   "id": 27,
    "type": "stat",
    "title": "Garage узлов на связи",
    "description": "",
@@ -839,7 +2201,7 @@
    },
    "gridPos": {
     "x": 4,
-    "y": 10,
+    "y": 41,
     "w": 4,
     "h": 4
    },
@@ -888,7 +2250,7 @@
    ]
   },
   {
-   "id": 17,
+   "id": 28,
    "type": "stat",
    "title": "Туннель: соединений",
    "description": "HA-соединения cloudflared с Cloudflare (2 пода × до 4). 0 = сайт недоступен снаружи.",
@@ -898,7 +2260,7 @@
    },
    "gridPos": {
     "x": 8,
-    "y": 10,
+    "y": 41,
     "w": 4,
     "h": 4
    },
@@ -951,7 +2313,7 @@
    ]
   },
   {
-   "id": 18,
+   "id": 29,
    "type": "stat",
    "title": "Сертификат истекает, дн",
    "description": "Ближайший срок среди Certificate cert-manager; продление идёт за 30 дней.",
@@ -961,7 +2323,7 @@
    },
    "gridPos": {
     "x": 12,
-    "y": 10,
+    "y": 41,
     "w": 4,
     "h": 4
    },
@@ -1015,7 +2377,7 @@
    ]
   },
   {
-   "id": 19,
+   "id": 30,
    "type": "stat",
    "title": "Свободно на дисках, мин",
    "description": "",
@@ -1025,7 +2387,7 @@
    },
    "gridPos": {
     "x": 16,
-    "y": 10,
+    "y": 41,
     "w": 4,
     "h": 4
    },
@@ -1079,7 +2441,7 @@
    ]
   },
   {
-   "id": 20,
+   "id": 31,
    "type": "stat",
    "title": "Память узлов, макс",
    "description": "",
@@ -1089,7 +2451,7 @@
    },
    "gridPos": {
     "x": 20,
-    "y": 10,
+    "y": 41,
     "w": 4,
     "h": 4
    },
@@ -1143,7 +2505,7 @@
    ]
   },
   {
-   "id": 21,
+   "id": 32,
    "type": "timeseries",
    "title": "Размер баз",
    "description": "",
@@ -1153,7 +2515,7 @@
    },
    "gridPos": {
     "x": 0,
-    "y": 14,
+    "y": 45,
     "w": 8,
     "h": 8
    },
@@ -1197,7 +2559,7 @@
    ]
   },
   {
-   "id": 22,
+   "id": 33,
    "type": "timeseries",
    "title": "Соединения к Postgres",
    "description": "",
@@ -1207,7 +2569,7 @@
    },
    "gridPos": {
     "x": 8,
-    "y": 14,
+    "y": 45,
     "w": 8,
     "h": 8
    },
@@ -1251,7 +2613,7 @@
    ]
   },
   {
-   "id": 23,
+   "id": 34,
    "type": "timeseries",
    "title": "Garage: свободно на дисках",
    "description": "",
@@ -1261,7 +2623,7 @@
    },
    "gridPos": {
     "x": 16,
-    "y": 14,
+    "y": 45,
     "w": 8,
     "h": 8
    },
@@ -1305,20 +2667,20 @@
    ]
   },
   {
-   "id": 24,
+   "id": 35,
    "type": "row",
    "title": "Узлы",
    "collapsed": false,
    "gridPos": {
     "x": 0,
-    "y": 22,
+    "y": 53,
     "w": 24,
     "h": 1
    },
    "panels": []
   },
   {
-   "id": 25,
+   "id": 36,
    "type": "timeseries",
    "title": "Память",
    "description": "",
@@ -1328,7 +2690,7 @@
    },
    "gridPos": {
     "x": 0,
-    "y": 23,
+    "y": 54,
     "w": 8,
     "h": 8
    },
@@ -1374,7 +2736,7 @@
    ]
   },
   {
-   "id": 26,
+   "id": 37,
    "type": "timeseries",
    "title": "CPU",
    "description": "",
@@ -1384,7 +2746,7 @@
    },
    "gridPos": {
     "x": 8,
-    "y": 23,
+    "y": 54,
     "w": 8,
     "h": 8
    },
@@ -1430,7 +2792,7 @@
    ]
   },
   {
-   "id": 27,
+   "id": 38,
    "type": "timeseries",
    "title": "Диск / занято",
    "description": "",
@@ -1440,7 +2802,7 @@
    },
    "gridPos": {
     "x": 16,
-    "y": 23,
+    "y": 54,
     "w": 8,
     "h": 8
    },
@@ -1486,7 +2848,7 @@
    ]
   },
   {
-   "id": 28,
+   "id": 39,
    "type": "table",
    "title": "Контейнеры ближе всего к лимиту памяти",
    "description": "working set / limit. Близко к 100% → OOMKilled.",
@@ -1496,7 +2858,7 @@
    },
    "gridPos": {
     "x": 0,
-    "y": 31,
+    "y": 62,
     "w": 12,
     "h": 8
    },
@@ -1544,7 +2906,7 @@
    ]
   },
   {
-   "id": 29,
+   "id": 40,
    "type": "timeseries",
    "title": "Сеть узлов (приём + отдача)",
    "description": "",
@@ -1554,7 +2916,7 @@
    },
    "gridPos": {
     "x": 12,
-    "y": 31,
+    "y": 62,
     "w": 12,
     "h": 8
    },
@@ -1598,20 +2960,20 @@
    ]
   },
   {
-   "id": 30,
+   "id": 41,
    "type": "row",
    "title": "По слоям и приложениям",
    "collapsed": false,
    "gridPos": {
     "x": 0,
-    "y": 39,
+    "y": 70,
     "w": 24,
     "h": 1
    },
    "panels": []
   },
   {
-   "id": 31,
+   "id": 42,
    "type": "timeseries",
    "title": "CPU по слоям",
    "description": "",
@@ -1621,7 +2983,7 @@
    },
    "gridPos": {
     "x": 0,
-    "y": 40,
+    "y": 71,
     "w": 6,
     "h": 8
    },
@@ -1665,7 +3027,7 @@
    ]
   },
   {
-   "id": 32,
+   "id": 43,
    "type": "timeseries",
    "title": "Память по слоям",
    "description": "",
@@ -1675,7 +3037,7 @@
    },
    "gridPos": {
     "x": 6,
-    "y": 40,
+    "y": 71,
     "w": 6,
     "h": 8
    },
@@ -1719,7 +3081,7 @@
    ]
   },
   {
-   "id": 33,
+   "id": 44,
    "type": "timeseries",
    "title": "CPU по приложениям",
    "description": "",
@@ -1729,7 +3091,7 @@
    },
    "gridPos": {
     "x": 12,
-    "y": 40,
+    "y": 71,
     "w": 6,
     "h": 8
    },
@@ -1773,7 +3135,7 @@
    ]
   },
   {
-   "id": 34,
+   "id": 45,
    "type": "timeseries",
    "title": "Память по приложениям",
    "description": "",
@@ -1783,7 +3145,7 @@
    },
    "gridPos": {
     "x": 18,
-    "y": 40,
+    "y": 71,
     "w": 6,
     "h": 8
    },
@@ -1827,20 +3189,20 @@
    ]
   },
   {
-   "id": 35,
+   "id": 46,
    "type": "row",
    "title": "Трафик",
    "collapsed": false,
    "gridPos": {
     "x": 0,
-    "y": 48,
+    "y": 79,
     "w": 24,
     "h": 1
    },
    "panels": []
   },
   {
-   "id": 36,
+   "id": 47,
    "type": "timeseries",
    "title": "Запросы по сервисам",
    "description": "",
@@ -1850,7 +3212,7 @@
    },
    "gridPos": {
     "x": 0,
-    "y": 49,
+    "y": 80,
     "w": 8,
     "h": 8
    },
@@ -1894,7 +3256,7 @@
    ]
   },
   {
-   "id": 37,
+   "id": 48,
    "type": "timeseries",
    "title": "Ошибки 5xx по сервисам",
    "description": "",
@@ -1904,7 +3266,7 @@
    },
    "gridPos": {
     "x": 8,
-    "y": 49,
+    "y": 80,
     "w": 8,
     "h": 8
    },
@@ -1948,7 +3310,7 @@
    ]
   },
   {
-   "id": 38,
+   "id": 49,
    "type": "timeseries",
    "title": "Задержка p95",
    "description": "",
@@ -1958,7 +3320,7 @@
    },
    "gridPos": {
     "x": 16,
-    "y": 49,
+    "y": 80,
     "w": 8,
     "h": 8
    },
@@ -2002,20 +3364,20 @@
    ]
   },
   {
-   "id": 39,
+   "id": 50,
    "type": "row",
    "title": "Почта и GitOps",
    "collapsed": false,
    "gridPos": {
     "x": 0,
-    "y": 57,
+    "y": 88,
     "w": 24,
     "h": 1
    },
    "panels": []
   },
   {
-   "id": 40,
+   "id": 51,
    "type": "stat",
    "title": "Stalwart опрашивается",
    "description": "Метрики Stalwart включаются в его WebUI (Settings › Telemetry › Metrics › Prometheus).",
@@ -2025,7 +3387,7 @@
    },
    "gridPos": {
     "x": 0,
-    "y": 58,
+    "y": 89,
     "w": 4,
     "h": 4
    },
@@ -2087,7 +3449,7 @@
    ]
   },
   {
-   "id": 41,
+   "id": 52,
    "type": "stat",
    "title": "Stalwart память",
    "description": "",
@@ -2097,7 +3459,7 @@
    },
    "gridPos": {
     "x": 4,
-    "y": 58,
+    "y": 89,
     "w": 4,
     "h": 4
    },
@@ -2142,7 +3504,7 @@
    ]
   },
   {
-   "id": 42,
+   "id": 53,
    "type": "stat",
    "title": "Stalwart рестарты 24 ч",
    "description": "",
@@ -2152,7 +3514,7 @@
    },
    "gridPos": {
     "x": 8,
-    "y": 58,
+    "y": 89,
     "w": 4,
     "h": 4
    },
@@ -2201,7 +3563,7 @@
    ]
   },
   {
-   "id": 43,
+   "id": 54,
    "type": "table",
    "title": "Flux: объекты не Ready",
    "description": "Пусто = всё применено.",
@@ -2211,7 +3573,7 @@
    },
    "gridPos": {
     "x": 12,
-    "y": 58,
+    "y": 89,
     "w": 12,
     "h": 4
    },
@@ -2259,20 +3621,20 @@
    ]
   },
   {
-   "id": 44,
+   "id": 55,
    "type": "row",
    "title": "Таргеты",
    "collapsed": false,
    "gridPos": {
     "x": 0,
-    "y": 62,
+    "y": 93,
     "w": 24,
     "h": 1
    },
    "panels": []
   },
   {
-   "id": 45,
+   "id": 56,
    "type": "table",
    "title": "Что опрашивает vmagent",
    "description": "",
@@ -2282,7 +3644,7 @@
    },
    "gridPos": {
     "x": 0,
-    "y": 63,
+    "y": 94,
     "w": 24,
     "h": 8
    },
@@ -2344,5 +3706,37 @@
     }
    ]
   }
- ]
+ ],
+ "annotations": {
+  "list": [
+   {
+    "name": "Деплой (Flux)",
+    "enable": true,
+    "iconColor": "blue",
+    "datasource": {
+     "type": "prometheus",
+     "uid": "VictoriaMetrics"
+    },
+    "expr": "max by (kind, name, revision) (flux_resource_info{kind=~\"Kustomization|HelmRelease\"}) unless max by (kind, name, revision) (flux_resource_info{kind=~\"Kustomization|HelmRelease\"} offset 3m)",
+    "step": "60s",
+    "titleFormat": "Деплой {{name}}",
+    "textFormat": "{{kind}} {{name}} → {{revision}}",
+    "useValueForTime": false
+   },
+   {
+    "name": "Выкатка подов",
+    "enable": true,
+    "iconColor": "purple",
+    "datasource": {
+     "type": "prometheus",
+     "uid": "VictoriaMetrics"
+    },
+    "expr": "changes(kube_deployment_metadata_generation[2m]) > 0 or changes(kube_statefulset_metadata_generation[2m]) > 0",
+    "step": "60s",
+    "titleFormat": "Выкатка {{namespace}}/{{deployment}}{{statefulset}}",
+    "textFormat": "Новая версия спецификации",
+    "useValueForTime": false
+   }
+  ]
+ }
 }
