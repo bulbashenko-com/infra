@@ -11,8 +11,12 @@ labels:
     includeTemplates: true
 resources:
   - fetch.yaml
+  - restore.yaml
 configMapGenerator:
   - name: drill-fetch
     files:
       - fetch.sh
       - known_hosts
+  - name: drill-verify
+    files:
+      - verify.sh
