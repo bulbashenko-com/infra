@@ -8,6 +8,11 @@ spec:
   # Primary + one streaming replica on different agent nodes: a node loss means a switchover in seconds,
   # not a restore. Backups (WAL + base, below) still guard against bad writes.
   instances: 2
+  # Ownership labels on the instance pods (README: Labels); CNPG patches them onto running pods, no restart.
+  inheritedMetadata:
+    labels:
+      bulbashenko.com/layer: app
+      bulbashenko.com/app: data
   affinity:
     enablePodAntiAffinity: true
     topologyKey: kubernetes.io/hostname
