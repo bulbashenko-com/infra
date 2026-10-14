@@ -44,8 +44,8 @@ resource "cloudflare_dns_record" "autodiscover" {
 
 
 resource "cloudflare_dns_record" "dmarc_txt" {
-  comment = "[mail] DMARC, manual: p=none, tighten later"
-  content = "\"v=DMARC1; p=none; rua=mailto:dmarc@bulbashenko.com; adkim=s; aspf=s\""
+  comment = "[mail] DMARC: quarantine, reject next (mail#5)"
+  content = "\"v=DMARC1; p=quarantine; rua=mailto:dmarc@bulbashenko.com; adkim=s; aspf=s\""
   name    = "_dmarc.bulbashenko.com"
   proxied = false
   ttl     = 1
