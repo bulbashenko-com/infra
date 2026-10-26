@@ -20,7 +20,7 @@ target=dev
 # Git-sourced apps the paths Flux reads (the GitRepository `ignore` list): other changes need no deploy.
 image='' deploy_paths=''
 case $app in
-  site)      file=apps/production/site/kustomization.yaml; keys=newTag; image=ghcr.io/$org/site ;;
+  site)      file=apps/base/site/kustomization.yaml; keys=newTag; image=ghcr.io/$org/site ;;
   auth)      file=clusters/hel1/auth.yaml; keys='commit|newTag'; image=ghcr.io/$org/auth-ui ;;
   mail)      file=clusters/hel1/mail.yaml; keys=commit; deploy_paths='^(kustomization\.yaml|deploy/k8s/)' ;;
   teamspeak) file=clusters/hel1/teamspeak.yaml; keys=commit; deploy_paths='^(kustomization\.yaml|deploy/k8s/)' ;;

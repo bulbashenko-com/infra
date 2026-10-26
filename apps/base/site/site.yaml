@@ -1,4 +1,6 @@
-# bulbashenko.com (Next.js standalone). Public through Cloudflare Tunnel → Traefik `web`.
+# bulbashenko.com (Next.js standalone), shared by production (apps/production/site) and staging (apps/staging/site).
+# What differs per environment comes from the overlay: the Secret `site`, the ConfigMap `site-env` (URLs, bucket),
+# the route, and the secret-revision annotation.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -10,9 +12,6 @@ spec:
   template:
     metadata:
       labels: { app: site }
-      annotations:
-        # Bump when secret.sops.yaml changes: env from a Secret is read only at pod start.
-        bulbashenko.com/secret-revision: "3"
     spec:
       securityContext:
         runAsNonRoot: true
@@ -25,13 +24,9 @@ spec:
           image: ghcr.io/bulbashenko-com/site:latest
           envFrom:
             - secretRef: { name: site }
+            - configMapRef: { name: site-env }
           env:
             - { name: S3_ENDPOINT, value: "http://garage.data.svc.cluster.local:3900" }
-            - { name: S3_BUCKET, value: media }
-            - { name: MEDIA_PUBLIC_URL, value: "https://media.bulbashenko.com" }
-            - { name: SKULL_MANIFEST_URL, value: "https://media.bulbashenko.com/skull/current.json" }
-            - { name: NEXT_PUBLIC_SITE_URL, value: "https://bulbashenko.com" }
-            - { name: OIDC_ISSUER, value: "https://auth.bulbashenko.com" }
             - { name: OIDC_CLIENT_ID, value: bulbashenko-site }
           ports:
             - { name: http, containerPort: 3000 }
@@ -67,26 +62,3 @@ spec:
   selector: { app: site }
   ports:
     - { name: http, port: 3000, targetPort: http }
----
-apiVersion: traefik.io/v1alpha1
-kind: IngressRoute
-metadata:
-  name: site
-spec:
-  entryPoints: [web]
-  routes:
-    - match: Host(`bulbashenko.com`)
-      services: [{ name: site, port: 3000 }]
-    - match: Host(`www.bulbashenko.com`)
-      middlewares: [{ name: www-to-apex }]
-      services: [{ name: site, port: 3000 }]
----
-apiVersion: traefik.io/v1alpha1
-kind: Middleware
-metadata:
-  name: www-to-apex
-spec:
-  redirectRegex:
-    regex: ^https?://www\.bulbashenko\.com/(.*)
-    replacement: https://bulbashenko.com/${1}
-    permanent: true

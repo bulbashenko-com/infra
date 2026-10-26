@@ -11,8 +11,20 @@ labels:
 resources:
   - namespace.yaml
   - secret.sops.yaml
-  - site.yaml
-images:
-  # Changed by scripts/promote.sh (on dev, released with the release PR): the image the site CI built.
-  - name: ghcr.io/bulbashenko-com/site
-    newTag: 5af8c6dfcc169bf19cede421bc57e63272df972b
+  - ../../base/site
+  - route.yaml
+configMapGenerator:
+  - name: site-env
+    literals:
+      - S3_BUCKET=media
+      - MEDIA_PUBLIC_URL=https://media.bulbashenko.com
+      - SKULL_MANIFEST_URL=https://media.bulbashenko.com/skull/current.json
+      - NEXT_PUBLIC_SITE_URL=https://bulbashenko.com
+      - OIDC_ISSUER=https://auth.bulbashenko.com
+patches:
+  # Bump when secret.sops.yaml changes: env from a Secret is read only at pod start.
+  - target: { kind: Deployment, name: site }
+    patch: |
+      - op: add
+        path: /spec/template/metadata/annotations
+        value: { bulbashenko.com/secret-revision: "3" }

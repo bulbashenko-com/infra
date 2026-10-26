@@ -58,6 +58,16 @@ post "/v2/UpdateBucket?id=$media_staging" '{"websiteAccess":{"enabled":true,"ind
 ensure_key app-media-staging "$KEY_APP_MEDIA_STAGING_ID" "$KEY_APP_MEDIA_STAGING_SECRET"
 allow "$media_staging" "$KEY_APP_MEDIA_STAGING_ID"
 
+# Staging refresh (apps/staging-platform, apps/staging/site): production exports the site's content database into
+# staging-seed; staging restores it and mirrors media. Staging never gets a key to production's database.
+seed=$(ensure_bucket staging-seed | tail -1)
+ensure_key staging-export "$KEY_STAGING_EXPORT_ID" "$KEY_STAGING_EXPORT_SECRET"
+ensure_key staging-restore "$KEY_STAGING_RESTORE_ID" "$KEY_STAGING_RESTORE_SECRET"
+allow "$seed" "$KEY_STAGING_EXPORT_ID"
+allow "$seed" "$KEY_STAGING_RESTORE_ID" false
+allow "$media" "$KEY_STAGING_RESTORE_ID" false
+allow "$media_staging" "$KEY_STAGING_RESTORE_ID"
+
 # CNPG base backups and WAL (barman-cloud plugin), and a read-only key for the off-site copy.
 cnpg=$(ensure_bucket cnpg-backups | tail -1)
 ensure_key cnpg "$KEY_CNPG_ID" "$KEY_CNPG_SECRET"

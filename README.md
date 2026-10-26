@@ -93,7 +93,7 @@ owner merges the release PR ─► main ─► Flux ─► the cluster (everythi
 
 | App | Gate before the pin | Pin |
 |---|---|---|
-| site | image `ghcr.io/bulbashenko-com/site:<sha>` pushed | `apps/production/site/kustomization.yaml` `newTag` |
+| site | image `ghcr.io/bulbashenko-com/site:<sha>` pushed | `apps/base/site/kustomization.yaml` `newTag` (production and staging) |
 | auth | `test` (UI + e2e) green, then image `auth-ui:<sha>` pushed | `clusters/hel1/auth.yaml` `commit` + `newTag` |
 | mail | `CI` green | `clusters/hel1/mail.yaml` `commit` |
 | teamspeak | `CI` green | `clusters/hel1/teamspeak.yaml` `commit` |
