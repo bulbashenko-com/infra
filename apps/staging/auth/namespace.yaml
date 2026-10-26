@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: auth-staging
+  labels:
+    bulbashenko.com/layer: app
+    bulbashenko.com/app: auth
+    bulbashenko.com/env: staging

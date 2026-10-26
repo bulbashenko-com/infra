@@ -45,12 +45,13 @@ Daily commands: `just --list`.
 
 ## Labels
 
-Every namespace and every object we manage carries two labels, so "mine" and "the machinery" are easy to tell apart (Headlamp, k9s, `kubectl get -l`).
+Every namespace and every object we manage carries two labels (staging a third), so "mine" and "the machinery" are easy to tell apart (Headlamp, k9s, `kubectl get -l`).
 
 | Label | Values |
 |---|---|
 | `bulbashenko.com/layer` | `app`: our services (site, auth, data). `platform`: what we install for them (tunnel, certs, Postgres operator, ingress, GitOps UI, access). `system`: Kubernetes/k3s internals, not touched. |
 | `bulbashenko.com/app` | `site`, `auth`, `data`, `tunnel`, `certs`, `postgres-operator`, `ingress`, `gitops`, `access`, `monitoring`, `controllers`, `configs`, `kubernetes` |
+| `bulbashenko.com/env` | `staging` on everything in `apps/staging` (namespaces `*-staging`); production objects have no `env` label. |
 
 Where they come from: Namespace manifests (explicit), `labels:` in each directory's `kustomization.yaml` (`includeSelectors: false`; pod templates included for apps), Flux `commonMetadata` for the auth repo, and `infrastructure/configs/system-namespaces.yaml` for namespaces Kubernetes or Flux create themselves (prune disabled).
 

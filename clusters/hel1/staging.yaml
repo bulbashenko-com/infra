@@ -1,0 +1,25 @@
+# Staging (apps/staging): namespaces and Secrets here; the apps come in their own Kustomizations as they land.
+# Databases and the bucket are created by `apps` (apps/production/data).
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: staging
+  namespace: flux-system
+  labels:
+    bulbashenko.com/layer: app
+    bulbashenko.com/app: staging
+spec:
+  dependsOn:
+    - name: apps
+  interval: 10m
+  path: ./apps/staging
+  prune: true
+  wait: true
+  timeout: 5m
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-age
