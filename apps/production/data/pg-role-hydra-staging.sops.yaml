@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: Secret
+metadata:
+    name: pg-role-hydra-staging
+    namespace: data
+    labels:
+        cnpg.io/reload: "true"
+type: kubernetes.io/basic-auth
+stringData:
+    username: ENC[AES256_GCM,data:RC4dVXOTRDHGeT1V0g==,iv:rE0g4HPlgmGh9e5kefy3uxCfOH1WMiJB424BK0+xVNY=,tag:atOwm3blBIOlE/rBqNuANw==,type:str]
+    password: ENC[AES256_GCM,data:oXOwDdPdqKdRpirEKyuzhp5xOmEfhNDwGpq+JoxtcLZCogLytAmubhgMMijgs3xe,iv:iqzvp2+1X8hv/oF4PY42kzb/tytth+uiGhTXVIZrE6s=,tag:aq9Ok6qPI7A9QYNLaVarVg==,type:str]
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSB0QlN2b0NESmE0bm1EZHBl
+            OU9OcmdNVTFsY0l3MFRqY2dWbnk4Z2RwS1FvCjYrZisvdjU1K2NXbmhHTTRmUU0v
+            d0JjOHM0QW9EWC9wRXBHQ0JCNk56UU0KLS0tIEtVNUwvbnMrOEZmYjdEZW1ONktO
+            amZMRlZxOW05QnhUdll6bWlJYnVJckEK5Lk63LlRj9mWU+LBMXrdqKyhAkdiH6vK
+            4UJSX0rFUXT9DYNsXZ8N4qU4lGVewjFxRyBjts+hQaanuUjgKZAGIw==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age12qgx04vs6thq39ym6jl5wlgcymjzrdln7w6wyck7px28k4p8fedq09dq5g
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBDWkhwRStQZXEwa1ZpK0VG
+            YTE3TFM5N0o5S0txUDZIdUhhL2dCWEV2QUdVClVpdm1wSFcvWXRreDM3MllPaTRK
+            cm5BaEg3a2wyS2dGZ3dudWRzSW11YnMKLS0tIE1NdkcvTWMweGEreHJGM0NnYkly
+            REhXQm5XVERMeXFGNEN3ZE5JUXU2d3MKx2XlrqDhyuzopzKYhpV53k/gmoYXDukc
+            6O8jgeS+ehVBqkvRoqTZZEHBtPD5FQ4+K1M4jnAT5YvUhyt90uQ97A==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age1c9jlhvq47psz20sl2wu7d2jwstjjylfx769tuumree8hdf5klf2sjluulk
+    encrypted_regex: ^(data|stringData)$
+    lastmodified: "2026-10-26T21:07:49Z"
+    mac: ENC[AES256_GCM,data:B/lUi3Q0abLTRE1Qu5I+p9qxauYgbnklylZhfBkdFomoTNiXRIo5ShJKZylrDTr6s1Fd9D+Mesmt5pMACzVsK2e0hwDknPbBIV4B9c2Ab1YLBLhDHdHqLs89AGPoO/u97RE+DzdSa8V7Dgd3LOVjtZEfPW1ZGQjY752mzYjzXac=,iv:3X3pO7SGAN3uk+QvdDpd7/T37KoWghpl+szdXyqDLks=,tag:bORKf2ekPgSMT4eB6lHHrw==,type:str]
+    version: 3.13.3

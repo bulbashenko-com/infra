@@ -67,7 +67,11 @@ dns:
   override_local_dns: false
   nameservers:
     global: []
-    split: {}
+    # Staging (bulbashenko.dev) is mesh-only too. A split route with no resolvers makes clients send these names
+    # to their local quad-100, which answers from the extra records below (tailscale issue 2706); everything
+    # else in bulbashenko.dev stays unresolvable inside the mesh.
+    split:
+      bulbashenko.dev: []
   search_domains: []
   # Admin UIs, resolved over the mesh (split DNS) to hel1-cp (100.64.0.5): Traefik with mesh-only + Ory.
   # IPv4 only.
@@ -76,6 +80,12 @@ dns:
     - {name: "flux.int.bulbashenko.com", type: "A", value: "100.64.0.5"}
     - {name: "grafana.int.bulbashenko.com", type: "A", value: "100.64.0.5"}
     - {name: "mail.int.bulbashenko.com", type: "A", value: "100.64.0.5"}
+    # Staging, same Traefik.
+    - {name: "bulbashenko.dev", type: "A", value: "100.64.0.5"}
+    - {name: "auth.bulbashenko.dev", type: "A", value: "100.64.0.5"}
+    - {name: "media.bulbashenko.dev", type: "A", value: "100.64.0.5"}
+    - {name: "users.int.bulbashenko.dev", type: "A", value: "100.64.0.5"}
+    - {name: "mailpit.int.bulbashenko.dev", type: "A", value: "100.64.0.5"}
 
 oidc:
   only_start_if_oidc_is_available: true

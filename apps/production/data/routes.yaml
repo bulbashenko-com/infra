@@ -12,3 +12,17 @@ spec:
       services: [{ name: garage, port: 3902 }]
     - match: Host(`s3.bulbashenko.com`)
       services: [{ name: garage, port: 3900 }]
+---
+# Staging media (bucket media-staging, global alias media.bulbashenko.dev): mesh only, like all of staging.
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: garage-staging
+spec:
+  entryPoints: [websecure]
+  routes:
+    - match: Host(`media.bulbashenko.dev`)
+      middlewares:
+        - { name: mesh-only, namespace: kube-system }
+      services: [{ name: garage, port: 3902 }]
+  tls: {}

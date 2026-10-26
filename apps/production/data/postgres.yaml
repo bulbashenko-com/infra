@@ -70,6 +70,23 @@ spec:
         ensure: present
         login: true
         passwordSecret: { name: pg-role-stalwart }
+      # Staging (apps/staging): own roles and databases in this cluster, nothing shared with production.
+      - name: bulbashenko_staging
+        ensure: present
+        login: true
+        passwordSecret: { name: pg-role-bulbashenko-staging }
+      - name: kratos_staging
+        ensure: present
+        login: true
+        passwordSecret: { name: pg-role-kratos-staging }
+      - name: hydra_staging
+        ensure: present
+        login: true
+        passwordSecret: { name: pg-role-hydra-staging }
+      - name: keto_staging
+        ensure: present
+        login: true
+        passwordSecret: { name: pg-role-keto-staging }
 ---
 apiVersion: postgresql.cnpg.io/v1
 kind: Database
@@ -106,3 +123,39 @@ spec:
   cluster: { name: pg }
   name: stalwart
   owner: stalwart
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: bulbashenko-staging
+spec:
+  cluster: { name: pg }
+  name: bulbashenko_staging
+  owner: bulbashenko_staging
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: kratos-staging
+spec:
+  cluster: { name: pg }
+  name: kratos_staging
+  owner: kratos_staging
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: hydra-staging
+spec:
+  cluster: { name: pg }
+  name: hydra_staging
+  owner: hydra_staging
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: keto-staging
+spec:
+  cluster: { name: pg }
+  name: keto_staging
+  owner: keto_staging

@@ -20,3 +20,6 @@ metadata:
 spec:
   defaultCertificate:
     secretName: int-wildcard-tls
+  # Matched by SNI; routes with `tls: {}` on these hosts get it. Issued in apps/staging/tls.
+  certificates:
+    - secretName: staging-wildcard-tls

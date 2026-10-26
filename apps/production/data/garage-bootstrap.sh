@@ -52,6 +52,12 @@ ensure_key ci-skull "$KEY_CI_SKULL_ID" "$KEY_CI_SKULL_SECRET"
 allow "$media" "$KEY_APP_MEDIA_ID"
 allow "$media" "$KEY_CI_SKULL_ID"
 
+# Staging copy of the site's media (apps/staging): filled by staging-refresh, served on the mesh only.
+media_staging=$(ensure_bucket media-staging media.bulbashenko.dev | tail -1)
+post "/v2/UpdateBucket?id=$media_staging" '{"websiteAccess":{"enabled":true,"indexDocument":"index.html"}}' >/dev/null
+ensure_key app-media-staging "$KEY_APP_MEDIA_STAGING_ID" "$KEY_APP_MEDIA_STAGING_SECRET"
+allow "$media_staging" "$KEY_APP_MEDIA_STAGING_ID"
+
 # CNPG base backups and WAL (barman-cloud plugin), and a read-only key for the off-site copy.
 cnpg=$(ensure_bucket cnpg-backups | tail -1)
 ensure_key cnpg "$KEY_CNPG_ID" "$KEY_CNPG_SECRET"

@@ -1,0 +1,18 @@
+# Staging lives on its own domain, bulbashenko.dev, so the production Ory session cookie (domain bulbashenko.com)
+# never reaches staging code. Mesh-only like the *.int admin hosts; Traefik picks this certificate by SNI from the
+# default TLSStore (infrastructure/configs/traefik/int-wildcard.yaml), so staging routes only need `tls: {}`.
+# Part of the `staging` Kustomization on purpose: if issuing fails, only staging waits, not infrastructure.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: staging-wildcard
+  namespace: kube-system
+spec:
+  secretName: staging-wildcard-tls
+  issuerRef:
+    kind: ClusterIssuer
+    name: letsencrypt
+  dnsNames:
+    - "bulbashenko.dev"
+    - "*.bulbashenko.dev"
+    - "*.int.bulbashenko.dev"
