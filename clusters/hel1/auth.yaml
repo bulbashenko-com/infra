@@ -13,7 +13,7 @@ spec:
   interval: 10m
   url: https://github.com/bulbashenko-com/auth.git
   ref:
-    commit: 80aa848072eb36d9402568885b821c9dcf7e3b66
+    commit: caa9969e6e110f27a210ddd44ee898571fcd762b
   ignore: |
     /*
     !/kustomization.yaml
@@ -45,4 +45,4 @@ spec:
   timeout: 10m
   images:
     - name: ghcr.io/bulbashenko-com/auth-ui
-      newTag: 80aa848072eb36d9402568885b821c9dcf7e3b66
+      newTag: caa9969e6e110f27a210ddd44ee898571fcd762b
