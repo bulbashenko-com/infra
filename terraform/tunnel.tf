@@ -34,16 +34,6 @@ locals {
   tunnel_cname = "${cloudflare_zero_trust_tunnel_cloudflared.hel1.id}.cfargotunnel.com"
 }
 
-data "cloudflare_zero_trust_tunnel_cloudflared_token" "hel1" {
-  account_id = var.cloudflare_account_id
-  tunnel_id  = cloudflare_zero_trust_tunnel_cloudflared.hel1.id
-}
-
 output "tunnel_hel1_id" {
   value = cloudflare_zero_trust_tunnel_cloudflared.hel1.id
-}
-
-output "tunnel_hel1_token" {
-  value     = data.cloudflare_zero_trust_tunnel_cloudflared_token.hel1.token
-  sensitive = true
 }

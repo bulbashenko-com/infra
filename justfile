@@ -114,7 +114,10 @@ tunnel-token:
     set -euo pipefail
     f=infrastructure/configs/cloudflared/tunnel-token.sops.yaml
     mkdir -p "$(dirname "$f")"
-    tok=$(cd terraform && sops exec-env creds-plan.sops.env "sops exec-env secrets.sops.env 'tofu output -raw tunnel_hel1_token'")
+    # Straight from the API (needs Tunnel Write, so the apply credentials): the token is a secret and stays out of
+    # the OpenTofu state.
+    id=$(cd terraform && sops exec-env creds-plan.sops.env "sops exec-env secrets.sops.env 'tofu output -raw tunnel_hel1_id'")
+    tok=$(sops exec-env terraform/creds-apply.sops.env "curl -fsS -H \"Authorization: Bearer \$CLOUDFLARE_API_TOKEN\" https://api.cloudflare.com/client/v4/accounts/e6a72845a55a3840d8b52c2d7fdf3004/cfd_tunnel/$id/token" | jq -er .result)
     printf 'apiVersion: v1\nkind: Secret\nmetadata:\n  name: tunnel-token\n  namespace: cloudflared\ntype: Opaque\nstringData:\n  token: %s\n' "$tok" \
       | sops encrypt --filename-override "$f" --input-type yaml --output-type yaml /dev/stdin > "$f"
     unset tok
