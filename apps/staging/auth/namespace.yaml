@@ -2,6 +2,9 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: auth-staging
+  annotations:
+    # Moving to apps/staging-platform (production side); never pruned during the handoff.
+    kustomize.toolkit.fluxcd.io/prune: disabled
   labels:
     bulbashenko.com/layer: app
     bulbashenko.com/app: auth
