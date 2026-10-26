@@ -59,12 +59,12 @@ node-key:
     printf '%s' "$key" | jq -Rs . | sops set --value-stdin terraform/secrets.sops.env '["TF_VAR_tailscale_authkey"]'
     echo "pre-auth key stored (expires in 30 min): run just apply now"
 
-# pin <app> to <sha> on main (default: the app's latest main; an older sha rolls back); prod gets it with the release
+# ask for a production deploy PR pinning <app> to <sha> (default: the app's latest main); the owner merges it
 promote app sha="":
     gh workflow run promote.yml -R bulbashenko-com/infra -f app={{app}} -f sha={{sha}}
-    @echo "runs: https://github.com/bulbashenko-com/infra/actions/workflows/promote.yml"
+    @echo "PR: https://github.com/bulbashenko-com/infra/pulls?q=is%3Aopen+head%3Adeploy%2F{{app}}"
 
-# preview a pin (diff + commit message) locally without writing anything
+# preview the deploy PR (diff + text) locally without writing anything
 promote-dry app sha="":
     DRY_RUN=1 scripts/promote.sh {{app}} {{sha}}
 
