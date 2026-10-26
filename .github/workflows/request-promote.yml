@@ -1,5 +1,5 @@
 # Reusable: the app repos call this after a push to main (and after their image is pushed)
-# to ask infra for a production deploy PR (promote.yml). Usage in an app repo:
+# to ask infra to pin the new commit on main (promote.yml; production gets it with the release). Usage in an app repo:
 #
 #   promote:
 #     needs: <build job>
@@ -38,7 +38,7 @@ jobs:
           owner: bulbashenko-com
           repositories: infra
           permission-contents: write
-      - name: Ask infra for a deploy PR
+      - name: Ask infra to pin the commit
         env:
           GH_TOKEN: ${{ steps.token.outputs.token }}
           APP: ${{ inputs.app }}
