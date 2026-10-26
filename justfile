@@ -12,35 +12,17 @@ check:
 secret file:
     sops {{file}}
 
-tofu := "sops exec-env secrets.sops.env"
-
-# OpenTofu plan (credentials from terraform/secrets.sops.env)
+# OpenTofu plan with the read-only credentials (CI posts the same on every PR touching terraform/)
 plan:
-    cd terraform && {{tofu}} 'tofu init -input=false >/dev/null && tofu plan -input=false -compact-warnings'
+    cd terraform && sops exec-env creds-plan.sops.env "sops exec-env secrets.sops.env 'tofu init -input=false >/dev/null && tofu plan -input=false -lock=false -compact-warnings'"
 
-# OpenTofu apply: owner only. Then ships the new encrypted state as an auto-merging PR.
-apply:
-    cd terraform && {{tofu}} 'tofu apply -input=false'
-    just _ship-state
+# break-glass only: CI applies on every release (.github/workflows/tofu.yml). Owner, read-write credentials.
+apply-local:
+    cd terraform && sops exec-env creds-apply.sops.env "sops exec-env secrets.sops.env 'tofu init -input=false >/dev/null && tofu apply -input=false'"
 
-# commit terraform.tfstate on a state/* branch and open an auto-merge PR
-_ship-state:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    f=terraform/terraform.tfstate
-    if git ls-files --error-unmatch "$f" >/dev/null 2>&1 && git diff --quiet -- "$f"; then
-      echo "state unchanged"; exit 0
-    fi
-    grep -q '"encrypted_data"' "$f" || { echo "refusing: $f is not encrypted" >&2; exit 1; }
-    b="state/$(date -u +%Y%m%d-%H%M%S)"
-    git switch -q -c "$b"
-    git add "$f"
-    git commit -q -m "Update encrypted state after apply"
-    git -c credential.helper= -c credential.helper='!gh auth git-credential' push -q -u origin "$b"
-    gh pr create --base main --title "State after apply ($b)" --body "Encrypted terraform.tfstate written by \`just apply\`."
-    gh pr merge --auto --merge --delete-branch
-    echo "Staying on $b. After the PR merges: git switch main && git pull"
-
+# one-time: tokens, age keys and GitHub secrets for OpenTofu in CI (owner; see the script header)
+tofu-ci-bootstrap:
+    scripts/tofu-ci-bootstrap.sh
 
 # one-time Headscale pre-auth key (tag:core, 30 min) into terraform/secrets.sops.env; asks for your sudo password on hel1-edge
 node-key:
@@ -57,7 +39,7 @@ node-key:
       exit 1
     fi
     printf '%s' "$key" | jq -Rs . | sops set --value-stdin terraform/secrets.sops.env '["TF_VAR_tailscale_authkey"]'
-    echo "pre-auth key stored (expires in 30 min): run just apply now"
+    echo "pre-auth key stored (expires in 30 min): commit it and release now (CI applies), or just apply-local"
 
 # pin <app> to <sha> on dev (default: the app's latest main; an older sha rolls back); prod gets it with the release
 promote app sha="":
@@ -126,13 +108,13 @@ status:
     flux get all -A --status-selector ready=false 2>/dev/null | grep -v '^$' || true
     kubectl get pods -A --field-selector=status.phase!=Running,status.phase!=Succeeded --no-headers 2>/dev/null || true
 
-# after `just apply` created the tunnel: store its connector token as a SOPS Secret for cloudflared
+# after the apply that created the tunnel: store its connector token as a SOPS Secret for cloudflared
 tunnel-token:
     #!/usr/bin/env bash
     set -euo pipefail
     f=infrastructure/configs/cloudflared/tunnel-token.sops.yaml
     mkdir -p "$(dirname "$f")"
-    tok=$(cd terraform && sops exec-env secrets.sops.env 'tofu output -raw tunnel_hel1_token')
+    tok=$(cd terraform && sops exec-env creds-plan.sops.env "sops exec-env secrets.sops.env 'tofu output -raw tunnel_hel1_token'")
     printf 'apiVersion: v1\nkind: Secret\nmetadata:\n  name: tunnel-token\n  namespace: cloudflared\ntype: Opaque\nstringData:\n  token: %s\n' "$tok" \
       | sops encrypt --filename-override "$f" --input-type yaml --output-type yaml /dev/stdin > "$f"
     unset tok

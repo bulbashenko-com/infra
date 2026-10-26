@@ -62,7 +62,7 @@ body=$(
   fi
   if grep -q '^terraform/' <<<"$files"; then
     echo "> [!NOTE]"
-    echo "> Есть изменения в \`terraform/\`: после релиза \`just plan\` / \`just apply\`."
+    echo "> Есть изменения в \`terraform/\`: план — в комментарии OpenTofu ниже; CI применит его после мержа."
     echo
   fi
   echo "Метод мержа — только merge commit (история нужна, чтобы следующий релиз видел, что уже выкачено)."
