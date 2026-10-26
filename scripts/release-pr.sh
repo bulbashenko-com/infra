@@ -43,7 +43,11 @@ for c in "${commits[@]}"; do
 done
 
 files=$(git diff --name-only origin/main origin/dev)
-cluster_wide=$(grep -E '^(infrastructure/|apps/edge/|clusters/hel1/(flux-instance|flux-operator|infrastructure|edge)\.yaml)' <<<"$files" || true)
+# What staging already ran: apps/staging and the shared apps/base. Docs and the CI tooling (live on dev already)
+# and repo metadata (dotfiles) are not deployed. Everything else first takes effect in production with this
+# release; list it by directory.
+prod_only=$(grep -vE '^(apps/staging/|apps/base/|\.github/|scripts/|justfile$|\.[^/]+$|.*\.md$)' <<<"$files" |
+  awk -F/ '{ print (NF > 2 ? $1 "/" $2 "/" : NF == 2 ? $1 "/" : $0) }' | sort -u || true)
 
 title="Release: ${#commits[@]} change(s) since $(git log -1 --format=%cs origin/main)"
 body=$(
@@ -51,15 +55,15 @@ body=$(
   echo
   if [ ${#deploys[@]} -gt 0 ]; then echo "### Приложения"; printf '%s\n' "${deploys[@]}"; echo; fi
   if [ ${#changes[@]} -gt 0 ]; then echo "### Изменения"; printf '%s\n' "${changes[@]}"; echo; fi
-  if [ -n "$cluster_wide" ]; then
+  if [ -n "$prod_only" ]; then
     echo "> [!WARNING]"
-    echo "> Кластерные изменения: в staging их проверить нельзя, они впервые применятся этим релизом."
-    sed 's/^/> - `/; s/$/`/' <<<"$cluster_wide"
+    echo "> В staging не проверялось, впервые применится в prod этим релизом:"
+    sed 's/^/> - `/; s/$/`/' <<<"$prod_only"
     echo
   fi
   if grep -q '^terraform/' <<<"$files"; then
     echo "> [!NOTE]"
-    echo "> Есть изменения в \`terraform/\`: после релиза \`just plan\` / \`just apply\`."
+    echo "> Есть изменения в \`terraform/\`: план — в комментарии OpenTofu ниже; CI применит его после мержа."
     echo
   fi
   echo "Метод мержа — только merge commit (история нужна, чтобы следующий релиз видел, что уже выкачено)."

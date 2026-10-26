@@ -93,7 +93,7 @@ owner merges the release PR ─► main ─► Flux ─► the cluster (everythi
 
 | App | Gate before the pin | Pin |
 |---|---|---|
-| site | image `ghcr.io/bulbashenko-com/site:<sha>` pushed | `apps/production/site/kustomization.yaml` `newTag` |
+| site | image `ghcr.io/bulbashenko-com/site:<sha>` pushed | `apps/base/site/kustomization.yaml` `newTag` (production and staging) |
 | auth | `test` (UI + e2e) green, then image `auth-ui:<sha>` pushed | `clusters/hel1/auth.yaml` `commit` + `newTag` |
 | mail | `CI` green | `clusters/hel1/mail.yaml` `commit` |
 | teamspeak | `CI` green | `clusters/hel1/teamspeak.yaml` `commit` |
@@ -106,7 +106,8 @@ owner merges the release PR ─► main ─► Flux ─► the cluster (everythi
   cluster-level Flux objects), which have no staging copy and first apply with the release. Merge it with a merge
   commit only; that is how the next release knows what is already out.
 - Hotfix: PR straight into `main` (owner merges); the workflow opens an auto-merging back-merge PR into `dev`.
-- `terraform/` is not deployed by Flux: after a release that touches it, the owner runs `just plan` / `just apply`.
+- `terraform/` is applied by CI, not Flux (`.github/workflows/tofu.yml`): every PR touching it gets a plan comment,
+  the release applies it. See `terraform/README.md`.
 - Credentials: GitHub App `bulbashenko-com-deploy` (Contents + Pull requests: write), installed on `infra` only, and
   allowed to bypass the `dev` ruleset (it pushes the pins). Org variable `DEPLOY_APP_CLIENT_ID`, org secret
   `DEPLOY_APP_PRIVATE_KEY`. An App token (not `GITHUB_TOKEN`) is required so its PRs run the required checks.

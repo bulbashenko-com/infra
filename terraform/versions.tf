@@ -12,10 +12,22 @@ terraform {
     }
   }
 
-  # State lives next to the code and is committed. It is encrypted with a
-  # passphrase that itself is kept in secrets.sops.env (age-encrypted).
-  backend "local" {
-    path = "terraform.tfstate"
+  # State lives in Cloudflare R2 (bucket bulbashenko-tofu-state, free tier: a state of ~100 KB and a few
+  # operations per run), outside the cluster it describes. It is encrypted with a passphrase kept in
+  # secrets.sops.env. Credentials (AWS_*) come from creds-plan.sops.env / creds-apply.sops.env. The lock file
+  # (use_lockfile, R2 conditional writes) keeps two applies apart.
+  backend "s3" {
+    bucket                      = "bulbashenko-tofu-state"
+    key                         = "hel1/terraform.tfstate"
+    region                      = "auto"
+    endpoints                   = { s3 = "https://e6a72845a55a3840d8b52c2d7fdf3004.r2.cloudflarestorage.com" }
+    use_path_style              = true
+    use_lockfile                = true
+    skip_credentials_validation = true
+    skip_region_validation      = true
+    skip_requesting_account_id  = true
+    skip_metadata_api_check     = true
+    skip_s3_checksum            = true
   }
 
   encryption {
@@ -36,7 +48,7 @@ terraform {
   }
 }
 
-# Tokens come from the environment (HCLOUD_TOKEN, CLOUDFLARE_API_TOKEN),
-# loaded by `just plan` / `just apply` from secrets.sops.env.
+# Tokens come from the environment (HCLOUD_TOKEN, CLOUDFLARE_API_TOKEN): creds-plan.sops.env (read-only, `just plan`
+# and pull requests) or creds-apply.sops.env (CI on main, .github/workflows/tofu.yml).
 provider "hcloud" {}
 provider "cloudflare" {}
