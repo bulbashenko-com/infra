@@ -14,3 +14,6 @@ terraform/*.tfstate.backup
 
 # cf CLI cache (account id), created in whatever directory cf runs
 .cloudflare/
+
+# State lives in R2 (versions.tf); never commit a local one again.
+terraform/terraform.tfstate
