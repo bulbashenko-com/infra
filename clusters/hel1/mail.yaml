@@ -1,4 +1,4 @@
-# Mail: apps/mail (namespace, Secret) -> Stalwart from bulbashenko-com/mail (pinned commit, changed by deploy PRs).
+# Mail: apps/mail (namespace, Secret) -> Stalwart from bulbashenko-com/mail (pinned commit, changed by scripts/promote.sh).
 # Data lives in the CNPG database stalwart (imported from Coolify on 2026-10-12).
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization

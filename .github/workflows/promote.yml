@@ -1,7 +1,7 @@
-# Opens or refreshes the production deploy PR for an app (branch deploy/<app>, scripts/promote.sh).
-# Triggered by the app repos after a push to main (request-promote.yml), or by hand: `just promote <app> [sha]`.
-# The owner decides: merge = deploy, close = skip. Never auto-merged.
-# The PR is created with the deploy GitHub App's token: PRs made with GITHUB_TOKEN would not run CI.
+# Pins an app's new commit on main (scripts/promote.sh): a direct commit by the deploy GitHub App, which may
+# push to main. main is staging; production gets the pin with the next release PR (release.yml).
+# Triggered by the app repos after a push to main (request-promote.yml), or by hand: `just promote <app> [sha]`,
+# which may also roll back (FORCE=1).
 name: promote
 
 on:
@@ -36,10 +36,11 @@ jobs:
           client-id: ${{ vars.DEPLOY_APP_CLIENT_ID }}
           private-key: ${{ secrets.DEPLOY_APP_PRIVATE_KEY }}
           permission-contents: write
-          permission-pull-requests: write
-      - name: Open or refresh the deploy PR
+      - name: Pin the commit on main
         env:
           GH_TOKEN: ${{ steps.token.outputs.token }}
           APP: ${{ github.event.client_payload.app || inputs.app }}
           SHA: ${{ github.event.client_payload.sha || inputs.sha }}
+          # A manual run is deliberate: it may pin an older commit (rollback).
+          FORCE: ${{ github.event_name == 'workflow_dispatch' && '1' || '' }}
         run: scripts/promote.sh "$APP" "$SHA"
