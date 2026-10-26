@@ -1,0 +1,64 @@
+# Internal CA for TLS inside the cluster (Postgres today). cert-manager holds the key in the Secret
+# cert-manager/internal-ca and signs server certificates through the ClusterIssuer `internal-ca`;
+# trust-manager publishes only the certificate to every namespace.
+#
+# The CA is ours rather than CNPG's own because CNPG regenerates its CA every 90 days, and a copied ca.crt
+# would stop matching. This one lives 10 years and keeps its key on renewal (rotationPolicy: Never), so a
+# renewed CA still validates every certificate it signed and clients never see a flag day.
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: selfsigned
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: internal-ca
+  namespace: cert-manager
+spec:
+  isCA: true
+  commonName: bulbashenko.com internal CA
+  secretName: internal-ca
+  duration: 87600h # 10 years
+  renewBefore: 8760h # 1 year
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Never
+  issuerRef: { name: selfsigned, kind: ClusterIssuer, group: cert-manager.io }
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: internal-ca
+spec:
+  ca:
+    secretName: internal-ca
+---
+# ConfigMap `internal-ca` (key ca.crt) in every namespace: only our CA. Use it as sslrootcert and similar,
+# where nothing but in-cluster servers should be trusted.
+apiVersion: trust.cert-manager.io/v1alpha1
+kind: Bundle
+metadata:
+  name: internal-ca
+spec:
+  sources:
+    - secret: { name: internal-ca, key: tls.crt }
+  target:
+    configMap: { key: ca.crt }
+---
+# ConfigMap `ca-bundle` (key ca-certificates.crt) in every namespace: public roots (Debian's ca-certificates,
+# shipped with trust-manager) plus our CA. For software that only reads a system store via SSL_CERT_FILE
+# (Stalwart), where pointing it at our CA alone would break its TLS to the outside world.
+apiVersion: trust.cert-manager.io/v1alpha1
+kind: Bundle
+metadata:
+  name: ca-bundle
+spec:
+  sources:
+    - useDefaultCAs: true
+    - secret: { name: internal-ca, key: tls.crt }
+  target:
+    configMap: { key: ca-certificates.crt }

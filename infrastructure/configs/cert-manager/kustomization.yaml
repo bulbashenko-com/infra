@@ -9,3 +9,4 @@ labels:
 resources:
   - cloudflare-api-token.sops.yaml
   - cluster-issuer.yaml
+  - internal-ca.yaml

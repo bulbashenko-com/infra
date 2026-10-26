@@ -16,6 +16,7 @@ resources:
   - pg-role-hydra.sops.yaml
   - pg-role-keto.sops.yaml
   - pg-role-stalwart.sops.yaml
+  - postgres-tls.yaml
   - postgres.yaml
   - garage-secret.sops.yaml
   - garage.yaml
