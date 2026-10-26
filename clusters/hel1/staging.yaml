@@ -1,27 +1,6 @@
 # Staging (apps/staging) is read from the dev branch; everything else in this cluster comes from main:
 # a merge to dev reaches staging at once, production only with the release PR dev -> main (README: Releases).
-# Databases and the buckets are created by `apps` (apps/production/data); namespaces, RBAC, the certificate and
-# the content export by `staging-platform` (apps/staging-platform, from main).
-apiVersion: kustomize.toolkit.fluxcd.io/v1
-kind: Kustomization
-metadata:
-  name: staging-platform
-  namespace: flux-system
-  labels:
-    bulbashenko.com/layer: platform
-    bulbashenko.com/app: staging
-spec:
-  dependsOn:
-    - name: apps
-  interval: 10m
-  path: ./apps/staging-platform
-  prune: true
-  wait: true
-  timeout: 5m
-  sourceRef:
-    kind: GitRepository
-    name: flux-system
----
+# Databases and the bucket are created by `apps` (apps/production/data).
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: GitRepository
 metadata:
@@ -46,11 +25,9 @@ metadata:
     bulbashenko.com/app: staging
 spec:
   dependsOn:
-    - name: staging-platform
+    - name: apps
   interval: 10m
   path: ./apps/staging
-  # dev lands without the owner's review: confined to the staging namespaces (apps/staging-platform/rbac.yaml).
-  serviceAccountName: staging-reconciler
   prune: true
   wait: true
   timeout: 5m

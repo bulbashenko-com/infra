@@ -1,5 +1,5 @@
 # bulbashenko.com. Own Flux Kustomization so a bad site release cannot block data/auth.
-# Version = newTag in apps/base/site/kustomization.yaml (scripts/promote.sh).
+# Version = newTag in apps/production/site/kustomization.yaml (scripts/promote.sh).
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:

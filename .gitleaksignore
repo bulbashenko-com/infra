@@ -1,3 +1,0 @@
-# False positives (gitleaks fingerprints). Each one is a public value, never a secret.
-# Owner age recipient (public key) in the CI bootstrap script.
-7758fbc3dd34200dacb992d291af80e8e0f96def:scripts/tofu-ci-bootstrap.sh:generic-api-key:25

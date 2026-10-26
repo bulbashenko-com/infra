@@ -1,24 +1,19 @@
 # Staging
 
 Production with `bulbashenko.com` replaced by `bulbashenko.dev`, reachable only over the mesh. Its own domain keeps
-the production Ory session cookie (domain `bulbashenko.com`) away from staging code. Design: infra#121.
+the production Ory session cookie (domain `bulbashenko.com`) away from staging code. Design and order of work:
+infra#121.
 
 | Production | Staging |
 |---|---|
 | `bulbashenko.com` | `bulbashenko.dev` |
-| `auth.bulbashenko.com` | `auth.bulbashenko.dev` (next: #81) |
-| `users.int.bulbashenko.com` | `users.int.bulbashenko.dev` (next: #81) |
+| `auth.bulbashenko.com` | `auth.bulbashenko.dev` |
+| `users.int.bulbashenko.com` | `users.int.bulbashenko.dev` |
 | `media.bulbashenko.com` | `media.bulbashenko.dev` |
+| Kratos mail via Stalwart | `mailpit.int.bulbashenko.dev` (nothing leaves the cluster) |
 
-- **Branches.** This directory is read from `dev` by the Flux Kustomization `staging`, which runs as
-  `staging-reconciler`: full rights in `site-staging` and `auth-staging`, none elsewhere. What staging needs outside
-  them (namespaces, RBAC, the `staging-wildcard` certificate, the content export) is in `apps/staging-platform`,
-  from `main`, so it changes with a release.
-- **Same build.** The site runs the image pinned in `apps/base/site` for both environments; staging gets a new pin at
-  once, production with the release. Environment differences: `site-env` ConfigMap, Secret, route.
-- **Data.** Database `bulbashenko_staging` and bucket `media-staging` (in `apps/production/data`, not backed up).
-  Production exports its content nightly (02:30 UTC, `staging-seed-export` in `data`; admin sessions left out) into
-  the bucket `staging-seed`. Staging restores that dump and mirrors `media` into `media-staging` nightly at
-  03:15 UTC (CronJob `staging-refresh`; an extra run: `just staging-refresh`). Staging never holds credentials for
-  production's database.
-- Names resolve through Headscale (extra records plus a split route for `bulbashenko.dev`).
+- Namespaces `site-staging` and `auth-staging` (one per app, as in production), labelled `bulbashenko.com/env: staging`.
+- Data: roles and databases `*_staging` in the production CNPG cluster `pg`, bucket `media-staging` with its own key
+  (both in `apps/production/data`). Not in the backups.
+- Names resolve through Headscale (extra records plus a split route for `bulbashenko.dev`); TLS from the
+  `staging-wildcard` certificate (`tls/`) in Traefik's default TLSStore.
