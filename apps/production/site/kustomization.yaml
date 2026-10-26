@@ -15,4 +15,4 @@ resources:
 images:
   # Changed by scripts/promote.sh (on dev, released with the release PR): the image the site CI built.
   - name: ghcr.io/bulbashenko-com/site
-    newTag: a41c822d7667ced305b499e24eaf701d040e3f56
+    newTag: 5af8c6dfcc169bf19cede421bc57e63272df972b
