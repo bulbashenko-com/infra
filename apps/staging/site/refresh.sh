@@ -2,7 +2,7 @@
 # Staging side of the refresh: restore the content dump that production exports nightly (apps/staging-platform)
 # into bulbashenko_staging, and mirror the media bucket. Admin sessions are not in the dump; everything else the
 # site stores is replaced. Two containers sharing /work: fetch (rclone), then restore (pg_restore).
-# Re-run: `just staging-refresh` (bumps REVISION in kustomization.yaml; Flux recreates the Job).
+# Runs nightly at 03:15 UTC (CronJob) and whenever REVISION in kustomization.yaml changes (`just staging-refresh`).
 set -eu
 case "$1" in
   fetch)

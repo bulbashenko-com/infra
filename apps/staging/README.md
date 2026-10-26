@@ -18,6 +18,7 @@ the production Ory session cookie (domain `bulbashenko.com`) away from staging c
   once, production with the release. Environment differences: `site-env` ConfigMap, Secret, route.
 - **Data.** Database `bulbashenko_staging` and bucket `media-staging` (in `apps/production/data`, not backed up).
   Production exports its content nightly (02:30 UTC, `staging-seed-export` in `data`; admin sessions left out) into
-  the bucket `staging-seed`. `just staging-refresh` re-runs the Job `staging-refresh`, which restores that dump and
-  mirrors `media` into `media-staging`. Staging never holds credentials for production's database.
+  the bucket `staging-seed`. Staging restores that dump and mirrors `media` into `media-staging` nightly at
+  03:15 UTC (CronJob `staging-refresh`; an extra run: `just staging-refresh`). Staging never holds credentials for
+  production's database.
 - Names resolve through Headscale (extra records plus a split route for `bulbashenko.dev`).

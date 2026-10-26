@@ -1,5 +1,5 @@
-# Staging refresh (refresh.sh). Runs when it lands and again whenever its ConfigMap changes (REVISION in
-# kustomization.yaml): `force` lets Flux recreate the finished Job.
+# Staging refresh (refresh.sh). The Job runs when it lands and again whenever its ConfigMap changes (REVISION in
+# kustomization.yaml; `force` lets Flux recreate the finished Job); the CronJob below runs it nightly.
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -56,3 +56,67 @@ spec:
         - { name: work, emptyDir: {} }
         - name: internal-ca
           configMap: { name: internal-ca }
+---
+# Every night after production's export (02:30 UTC, apps/staging-platform): staging starts each day with
+# production's content. Changes made in staging's admin last until then.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: staging-refresh
+spec:
+  schedule: "15 3 * * *"
+  timeZone: Etc/UTC
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      template:
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 26
+            runAsGroup: 26
+            fsGroup: 26
+            seccompProfile: { type: RuntimeDefault }
+          initContainers:
+            - name: fetch
+              image: rclone/rclone:1.71.2
+              command: ["/bin/sh", "/scripts/refresh.sh", "fetch"]
+              env:
+                - { name: HOME, value: /work }
+                - { name: RCLONE_CONFIG_GARAGE_TYPE, value: s3 }
+                - { name: RCLONE_CONFIG_GARAGE_PROVIDER, value: Other }
+                - { name: RCLONE_CONFIG_GARAGE_ENDPOINT, value: "http://garage.data.svc.cluster.local:3900" }
+                - { name: RCLONE_CONFIG_GARAGE_REGION, value: garage }
+                - { name: RCLONE_CONFIG_GARAGE_FORCE_PATH_STYLE, value: "true" }
+                - { name: RCLONE_CONFIG_GARAGE_ACCESS_KEY_ID, valueFrom: { secretKeyRef: { name: staging-refresh, key: KEY_ID } } }
+                - { name: RCLONE_CONFIG_GARAGE_SECRET_ACCESS_KEY, valueFrom: { secretKeyRef: { name: staging-refresh, key: KEY_SECRET } } }
+              volumeMounts: &mounts
+                - { name: scripts, mountPath: /scripts }
+                - { name: work, mountPath: /work }
+                - { name: internal-ca, mountPath: /etc/internal-ca, readOnly: true }
+              resources:
+                requests: { cpu: 10m, memory: 32Mi }
+              securityContext: &hardened
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: { drop: [ALL] }
+          containers:
+            - name: restore
+              image: ghcr.io/cloudnative-pg/postgresql:17.7-standard-trixie
+              command: ["/bin/sh", "/scripts/refresh.sh", "restore"]
+              env:
+                - { name: DATABASE_URL, valueFrom: { secretKeyRef: { name: site, key: DATABASE_URL } } }
+              volumeMounts: *mounts
+              resources:
+                requests: { cpu: 10m, memory: 64Mi }
+              securityContext: *hardened
+          volumes:
+            - name: scripts
+              configMap: { name: staging-refresh }
+            - { name: work, emptyDir: {} }
+            - name: internal-ca
+              configMap: { name: internal-ca }
