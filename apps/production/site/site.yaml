@@ -12,7 +12,7 @@ spec:
       labels: { app: site }
       annotations:
         # Bump when secret.sops.yaml changes: env from a Secret is read only at pod start.
-        bulbashenko.com/secret-revision: "2"
+        bulbashenko.com/secret-revision: "3"
     spec:
       securityContext:
         runAsNonRoot: true
@@ -50,9 +50,14 @@ spec:
           volumeMounts:
             - { name: cache, mountPath: /app/.next/cache }
             - { name: tmp, mountPath: /tmp }
+            # CA of the Postgres server certificate; DATABASE_URL uses it as sslrootcert (verify-full).
+            - { name: internal-ca, mountPath: /etc/internal-ca, readOnly: true }
       volumes:
         - { name: cache, emptyDir: {} }
         - { name: tmp, emptyDir: {} }
+        # trust-manager puts ConfigMap internal-ca into every namespace (infrastructure/configs/cert-manager).
+        - name: internal-ca
+          configMap: { name: internal-ca }
 ---
 apiVersion: v1
 kind: Service

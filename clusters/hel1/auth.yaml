@@ -43,6 +43,13 @@ spec:
   prune: true
   wait: true
   timeout: 10m
+  # Env from the Secret `auth` is read only at pod start: bump when apps/production/auth/secret.sops.yaml changes.
+  patches:
+    - target: { kind: Deployment }
+      patch: |
+        - op: add
+          path: /spec/template/metadata/annotations
+          value: { bulbashenko.com/secret-revision: "1" }
   images:
     - name: ghcr.io/bulbashenko-com/auth-ui
       newTag: dfecbba261f9e37167bb8db88ca3595a0021bc8d
