@@ -68,6 +68,23 @@ promote app sha="":
 promote-dry app sha="":
     DRY_RUN=1 scripts/promote.sh {{app}} {{sha}}
 
+# refresh staging from production's latest content export: bumps REVISION on dev through an auto-merging PR
+staging-refresh:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    f=apps/staging/site/kustomization.yaml
+    git fetch -q origin dev
+    rev=$(git show origin/dev:$f | sed -nE 's/^ *- REVISION=([0-9]+)$/\1/p')
+    next=$((rev + 1)) branch=staging-refresh-$next
+    content=$(git show origin/dev:$f | sed -E "s/^( *- REVISION=)[0-9]+$/\1$next/")
+    git switch -q -c "$branch" origin/dev
+    printf '%s\n' "$content" > "$f"
+    git commit -q -m "Refresh staging (revision $next)" -- "$f"
+    git push -q -u origin "$branch"
+    gh pr create --base dev --head "$branch" --title "Refresh staging (revision $next)" --body "Re-runs the staging-refresh Job (apps/staging/site/refresh.sh)."
+    gh pr merge "$branch" --auto --merge
+    git switch -q -
+
 kube_admin := env_var('HOME') / ".kube/hel1-admin.yaml"
 
 # one-time: install Flux Operator, the cluster SOPS key and the FluxInstance (owner, admin kubeconfig)

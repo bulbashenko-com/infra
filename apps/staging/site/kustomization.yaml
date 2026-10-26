@@ -1,3 +1,5 @@
+# The site in staging: same base and pin as production (apps/base/site), staging URLs, its own database
+# (bulbashenko_staging), bucket (media-staging) and Secret. Content comes from the refresh (refresh.sh).
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: site-staging
@@ -8,5 +10,32 @@ labels:
       bulbashenko.com/app: site
       bulbashenko.com/env: staging
     includeSelectors: false
+    includeTemplates: true
 resources:
-  - namespace.yaml
+  - secret.sops.yaml
+  - refresh-secret.sops.yaml
+  - ../../base/site
+  - route.yaml
+  - refresh.yaml
+configMapGenerator:
+  - name: site-env
+    literals:
+      - S3_BUCKET=media-staging
+      - MEDIA_PUBLIC_URL=https://media.bulbashenko.dev
+      - SKULL_MANIFEST_URL=https://media.bulbashenko.dev/skull/current.json
+      # Build-time NEXT_PUBLIC_* in the client bundle still say bulbashenko.com (one image for both).
+      - NEXT_PUBLIC_SITE_URL=https://bulbashenko.dev
+      - OIDC_ISSUER=https://auth.bulbashenko.dev
+  - name: staging-refresh
+    files:
+      - refresh.sh
+    literals:
+      # Bump to refresh staging from production's latest export (`just staging-refresh`).
+      - REVISION=1
+patches:
+  # Bump when secret.sops.yaml changes: env from a Secret is read only at pod start.
+  - target: { kind: Deployment, name: site }
+    patch: |
+      - op: add
+        path: /spec/template/metadata/annotations
+        value: { bulbashenko.com/secret-revision: "1" }
