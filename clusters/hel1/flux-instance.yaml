@@ -34,7 +34,6 @@ spec:
   sync:
     kind: GitRepository
     url: https://github.com/bulbashenko-com/infra.git
-    # Production follows the release branch; main is staging (README: Releases).
-    ref: refs/heads/production
+    ref: refs/heads/main
     path: clusters/hel1
     interval: 1m
