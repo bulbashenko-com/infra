@@ -7,6 +7,9 @@ kind: Certificate
 metadata:
   name: staging-wildcard
   namespace: kube-system
+  annotations:
+    # Moving to apps/staging-platform (production side); never pruned during the handoff.
+    kustomize.toolkit.fluxcd.io/prune: disabled
 spec:
   secretName: staging-wildcard-tls
   issuerRef:
