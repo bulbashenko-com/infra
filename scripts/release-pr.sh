@@ -44,9 +44,10 @@ done
 
 files=$(git diff --name-only origin/main origin/dev)
 # What staging already ran: apps/staging and the shared apps/base. Docs and the CI tooling (live on dev already)
-# are not deployed. Everything else first takes effect in production with this release; list it by directory.
-prod_only=$(grep -vE '^(apps/staging/|apps/base/|\.github/|scripts/|justfile$|.*\.md$)' <<<"$files" |
-  awk -F/ '{ print (NF > 2 ? $1 "/" $2 "/" : $0) }' | sort -u || true)
+# and repo metadata (dotfiles) are not deployed. Everything else first takes effect in production with this
+# release; list it by directory.
+prod_only=$(grep -vE '^(apps/staging/|apps/base/|\.github/|scripts/|justfile$|\.[^/]+$|.*\.md$)' <<<"$files" |
+  awk -F/ '{ print (NF > 2 ? $1 "/" $2 "/" : NF == 2 ? $1 "/" : $0) }' | sort -u || true)
 
 title="Release: ${#commits[@]} change(s) since $(git log -1 --format=%cs origin/main)"
 body=$(
