@@ -1,5 +1,5 @@
 # TeamSpeak 6 from bulbashenko-com/teamspeak, pinned to one commit. Namespace and Secret come from
-# the edge Kustomization (apps/edge/teamspeak). The commit is changed by deploy PRs (scripts/promote.sh).
+# the edge Kustomization (apps/edge/teamspeak). The commit is changed by scripts/promote.sh.
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: GitRepository
 metadata:
