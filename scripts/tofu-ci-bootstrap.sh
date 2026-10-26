@@ -22,7 +22,7 @@ repo=bulbashenko-com/infra
 bucket=bulbashenko-tofu-state
 zone_com=abb0bea137c9c120a465f8a609c98e02
 zone_dev=0a900192bbd9a29f95f3ccb7e01a6332
-owner_key=age12qgx04vs6thq39ym6jl5wlgcymjzrdln7w6wyck7px28k4p8fedq09dq5g
+owner_key=age12qgx04vs6thq39ym6jl5wlgcymjzrdln7w6wyck7px28k4p8fedq09dq5g  # public age recipient, not a secret  gitleaks:allow
 
 [ ! -e terraform/creds-apply.sops.env ] || { echo "already bootstrapped (terraform/creds-apply.sops.env exists)" >&2; exit 1; }
 for t in cf sops age-keygen jq gh sha256sum; do command -v "$t" >/dev/null || { echo "missing: $t" >&2; exit 1; }; done
