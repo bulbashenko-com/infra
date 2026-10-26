@@ -27,6 +27,10 @@ spec:
                 values: [mail, edge]
   imageName: ghcr.io/cloudnative-pg/postgresql:17.7-standard-trixie
   enableSuperuserAccess: false
+  # Server certificate from the internal CA (postgres-tls.yaml), so clients can use verify-full.
+  certificates:
+    serverTLSSecret: pg-server-tls
+    serverCASecret: pg-server-tls
   storage:
     size: 10Gi
     storageClass: local-path

@@ -1,0 +1,31 @@
+# Server certificate for the CNPG cluster `pg`, signed by the internal CA (infrastructure/configs/cert-manager),
+# so clients can connect with sslmode=verify-full against the ConfigMap `internal-ca`. cert-manager renews it;
+# the cnpg.io/reload label makes the instances reload it without a restart. Names = the cluster's services.
+# Client certificates (streaming_replica) stay with CNPG's own CA (Secret pg-ca).
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: pg-server-tls
+spec:
+  secretName: pg-server-tls
+  secretTemplate:
+    labels:
+      cnpg.io/reload: ""
+  usages: [server auth]
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  dnsNames:
+    - pg-rw
+    - pg-rw.data
+    - pg-rw.data.svc
+    - pg-rw.data.svc.cluster.local
+    - pg-r
+    - pg-r.data
+    - pg-r.data.svc
+    - pg-r.data.svc.cluster.local
+    - pg-ro
+    - pg-ro.data
+    - pg-ro.data.svc
+    - pg-ro.data.svc.cluster.local
+  issuerRef: { name: internal-ca, kind: ClusterIssuer, group: cert-manager.io }

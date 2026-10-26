@@ -6,6 +6,7 @@ labels:
     includeSelectors: false
 resources:
   - cert-manager.yaml
+  - trust-manager.yaml
   - cloudnative-pg.yaml
   - barman-cloud.yaml
   - victoria-metrics-operator.yaml
