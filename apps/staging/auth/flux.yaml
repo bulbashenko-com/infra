@@ -1,0 +1,48 @@
+# Ory from bulbashenko-com/auth in staging: the repo's root base plus its staging component (deploy/staging), at
+# the same commit and image as production (clusters/hel1/auth.yaml). scripts/promote.sh changes both pins in one
+# commit on dev: staging runs it at once, production with the release.
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: auth
+spec:
+  interval: 10m
+  url: https://github.com/bulbashenko-com/auth.git
+  ref:
+    commit: dfecbba261f9e37167bb8db88ca3595a0021bc8d
+  ignore: |
+    /*
+    !/kustomization.yaml
+    !/deploy/k8s/
+    !/deploy/staging/
+    !/ory/
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: auth
+spec:
+  interval: 10m
+  sourceRef:
+    kind: GitRepository
+    name: auth
+  path: ./
+  components:
+    - deploy/staging
+  targetNamespace: auth-staging
+  # As the dev-side Kustomization that created it: rights in this namespace only (rbac.yaml).
+  serviceAccountName: staging-reconciler
+  commonMetadata:
+    labels:
+      bulbashenko.com/layer: app
+      bulbashenko.com/app: auth
+      bulbashenko.com/env: staging
+  prune: true
+  # Health includes the e2e Job (about 10 minutes); its verdict gates the release (staging-gate.yml in infra).
+  wait: true
+  timeout: 30m
+  images:
+    - name: ghcr.io/bulbashenko-com/auth-ui
+      newTag: dfecbba261f9e37167bb8db88ca3595a0021bc8d
+    - name: ghcr.io/bulbashenko-com/auth-e2e
+      newTag: dfecbba261f9e37167bb8db88ca3595a0021bc8d

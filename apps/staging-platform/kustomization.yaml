@@ -9,6 +9,7 @@ resources:
   - rbac.yaml
   - certificate.yaml
   - seed-export.yaml
+  - notify.yaml
 configMapGenerator:
   - name: staging-seed-export
     namespace: data

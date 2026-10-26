@@ -20,6 +20,21 @@ plan:
 apply-local:
     cd terraform && sops exec-env creds-apply.sops.env "sops exec-env secrets.sops.env 'tofu init -input=false >/dev/null && tofu apply -input=false'"
 
+# one-time (owner): a deploy-App key generated for the cluster, as Flux's credentials for staging verdicts (notify.yaml)
+flux-github-app pem:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    f=apps/staging-platform/github-app.sops.yaml
+    python3 - "{{pem}}" <<'PY' | sops encrypt --filename-override "$f" --input-type yaml --output-type yaml /dev/stdin > "$f"
+    import sys, yaml
+    key = open(sys.argv[1]).read()
+    assert "PRIVATE KEY" in key, "not a PEM private key"
+    print(yaml.safe_dump({"apiVersion": "v1", "kind": "Secret", "type": "Opaque",
+        "metadata": {"name": "github-app", "namespace": "flux-system"},
+        "stringData": {"githubAppID": "5289634", "githubAppInstallationID": "170695566", "githubAppPrivateKey": key}}))
+    PY
+    echo "wrote $f; now delete {{pem}}"
+
 # one-time: tokens, age keys and GitHub secrets for OpenTofu in CI (owner; see the script header)
 tofu-ci-bootstrap:
     scripts/tofu-ci-bootstrap.sh
