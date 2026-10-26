@@ -11,3 +11,6 @@ terraform/.terraform/
 terraform/*.tfplan
 terraform/crash.log
 terraform/*.tfstate.backup
+
+# cf CLI cache (account id), created in whatever directory cf runs
+.cloudflare/

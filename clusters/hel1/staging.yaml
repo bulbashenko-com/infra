@@ -1,5 +1,20 @@
-# Staging (apps/staging): namespaces and Secrets here; the apps come in their own Kustomizations as they land.
+# Staging (apps/staging) is read from the dev branch; everything else in this cluster comes from main:
+# a merge to dev reaches staging at once, production only with the release PR dev -> main (README: Releases).
 # Databases and the bucket are created by `apps` (apps/production/data).
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: infra-dev
+  namespace: flux-system
+  labels:
+    bulbashenko.com/layer: app
+    bulbashenko.com/app: staging
+spec:
+  interval: 1m
+  url: https://github.com/bulbashenko-com/infra.git
+  ref:
+    branch: dev
+---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
@@ -18,7 +33,7 @@ spec:
   timeout: 5m
   sourceRef:
     kind: GitRepository
-    name: flux-system
+    name: infra-dev
   decryption:
     provider: sops
     secretRef:

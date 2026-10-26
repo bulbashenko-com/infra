@@ -13,6 +13,6 @@ resources:
   - secret.sops.yaml
   - site.yaml
 images:
-  # Changed by deploy PRs (scripts/promote.sh): the image the site CI built for that commit.
+  # Changed by scripts/promote.sh (on dev, released with the release PR): the image the site CI built.
   - name: ghcr.io/bulbashenko-com/site
     newTag: a41c822d7667ced305b499e24eaf701d040e3f56

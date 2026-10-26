@@ -5,20 +5,21 @@ Single source of truth for the bulbashenko.com platform. If it runs, it is descr
 | Layer | Tool | Path |
 |---|---|---|
 | Servers, firewalls, network, IPs, DNS, Tunnel | OpenTofu (hcloud, cloudflare) | `terraform/` |
-| Cluster bootstrap and reconciliation | Flux | `clusters/hel1/` |
+| Cluster bootstrap and reconciliation | Flux (branch `main`; staging from `dev`) | `clusters/hel1/` |
 | Platform (ingress, certs, tunnel, DB operator, monitoring, backups) | Flux + Helm | `infrastructure/` |
 | Applications | Flux + Kustomize | `apps/{base,staging,production}/` |
 | Secrets | SOPS + age | `*.sops.yaml` next to what uses them |
 
 ## Rules
 
-- Change = pull request. `main` is protected; CI must be green.
+- Two branches. `dev` (the default branch) is **staging**: every change lands there through a pull request (CI
+  green; agents may auto-merge). `main` is **production**: Flux syncs `clusters/hel1` from it. A release is one pull
+  request `dev -> main`, kept open and described by a bot; the owner merges it. See [Releases](#releases).
 - Secrets are committed **only** encrypted, in `*.sops.yaml`. CI rejects plaintext `kind: Secret` and unencrypted `*.sops.*` files; gitleaks scans every push.
-- Production deploys are pull requests. A push to `main` in an app repo (site, auth, mail, teamspeak) opens or refreshes
-  the PR `deploy/<app>` here, pinning the new commit (image tag or Flux `GitRepository` commit); merge = deploy,
-  close = skip. One rolling PR per app, never auto-merged. By hand: `just promote <app> [sha]` (preview: `just promote-dry`).
-  Details: [Deploy PRs](#deploy-prs).
-- Rollback = `git revert`.
+- App versions: a push to `main` in an app repo (site, auth, mail, teamspeak) pins the new commit on `main` here
+  on `dev` (image tag or Flux `GitRepository` commit), straight away and without a PR; production gets it with the release.
+  By hand: `just promote <app> [sha]` (an older sha rolls back; preview: `just promote-dry`).
+- Rollback = `git revert` (in `main`, or revert the release merge).
 
 ## Recovery from zero
 
@@ -81,25 +82,32 @@ Alertmanager, node-exporter, kube-state-metrics, Grafana).
 - Alerts: upstream rules (synced by the chart) plus ours in `infrastructure/configs/monitoring/rules.yaml` (backups,
   WAL, replication, Garage, tunnel, certificates, 5xx, OOM kills, Flux). Alertmanager has no receiver yet (Telegram: infra#75).
 
-## Deploy PRs
+## Releases
 
 ```
-app repo: push to main ─► CI / image build ─► request-promote.yml ──repository_dispatch──► infra: promote.yml
-                                                                                              │ scripts/promote.sh
-                                                                         PR deploy/<app> ◄────┘ (owner merges or closes)
+app repo: push to main ─► CI / image ─► request-promote.yml ──dispatch──► infra: promote.yml ─► commit on dev (pin)
+you / agent: PR ─► CI ─► merge into dev ─────────────────────────────────────────────────────────┘
+dev ─► staging (apps/staging, read from dev)                   release.yml keeps PR "Release" dev -> main open
+owner merges the release PR ─► main ─► Flux ─► the cluster (everything in clusters/hel1)
 ```
 
-| App | Gate before the PR | Pin changed |
+| App | Gate before the pin | Pin |
 |---|---|---|
 | site | image `ghcr.io/bulbashenko-com/site:<sha>` pushed | `apps/production/site/kustomization.yaml` `newTag` |
 | auth | `test` (UI + e2e) green, then image `auth-ui:<sha>` pushed | `clusters/hel1/auth.yaml` `commit` + `newTag` |
 | mail | `CI` green | `clusters/hel1/mail.yaml` `commit` |
 | teamspeak | `CI` green | `clusters/hel1/teamspeak.yaml` `commit` |
 
-- The PR body lists the commits between what production runs and the new pin, and warns on rollbacks.
-- A newer push force-updates the same `deploy/<app>` branch; an older request never overwrites a newer pending one.
-- Closing the PR keeps production as is; the next push to that app opens a new one.
-- Credentials: GitHub App `bulbashenko-com-deploy` (Contents + Pull requests: write), installed on `infra` only.
-  Org variable `DEPLOY_APP_CLIENT_ID` and org secret `DEPLOY_APP_PRIVATE_KEY`, visible to infra and the app repos.
-  An App token (not `GITHUB_TOKEN`) is required so the PR runs the required checks.
+- `scripts/promote.sh` commits the pin to `dev` as the deploy App (fast-forward, retried if `dev` moves). A request
+  older than the current pin is skipped, so out-of-order dispatches never roll back; a manual run may (rollback).
+  The commit message lists the app's commits since the previous pin.
+- `scripts/release-pr.sh` (workflow `release`, on every push to `dev` or `main`) keeps one PR
+  `dev -> main`: apps, other changes, and a warning for cluster-wide paths (`infrastructure/`, `apps/edge/`,
+  cluster-level Flux objects), which have no staging copy and first apply with the release. Merge it with a merge
+  commit only; that is how the next release knows what is already out.
+- Hotfix: PR straight into `main` (owner merges); the workflow opens an auto-merging back-merge PR into `dev`.
+- `terraform/` is not deployed by Flux: after a release that touches it, the owner runs `just plan` / `just apply`.
+- Credentials: GitHub App `bulbashenko-com-deploy` (Contents + Pull requests: write), installed on `infra` only, and
+  allowed to bypass the `dev` ruleset (it pushes the pins). Org variable `DEPLOY_APP_CLIENT_ID`, org secret
+  `DEPLOY_APP_PRIVATE_KEY`. An App token (not `GITHUB_TOKEN`) is required so its PRs run the required checks.
 - Add an app: a `case` line in `scripts/promote.sh`, the choice in `promote.yml`, and a `request-promote.yml` job in its repo.

@@ -1,6 +1,6 @@
 # Ory stack from bulbashenko-com/auth, pinned to one commit. Its own Flux Kustomization at cluster level,
 # so a broken auth release cannot block `apps` (data, site) and vice versa. Pinned: configs (Kustomize base at the repo root)
-# and the auth-ui image built from that same commit. Both SHAs are changed by deploy PRs (scripts/promote.sh).
+# and the auth-ui image built from that same commit. Both SHAs are changed by scripts/promote.sh.
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: GitRepository
 metadata:
