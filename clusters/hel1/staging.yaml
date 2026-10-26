@@ -16,7 +16,10 @@ spec:
   interval: 10m
   path: ./apps/staging-platform
   prune: true
-  wait: true
+  # Applied, not awaited: the export Jobs may retry until Garage has imported their key, and `staging` should not
+  # wait for that. The certificate is what staging needs; it is checked.
+  healthChecks:
+    - { apiVersion: cert-manager.io/v1, kind: Certificate, name: staging-wildcard, namespace: kube-system }
   timeout: 5m
   sourceRef:
     kind: GitRepository
@@ -52,7 +55,10 @@ spec:
   # dev lands without the owner's review: confined to the staging namespaces (apps/staging-platform/rbac.yaml).
   serviceAccountName: staging-reconciler
   prune: true
-  wait: true
+  # Not `wait`: that would also wait for the nested Kustomization auth-staging/auth and its e2e run. The site is
+  # checked here; Ory's health is its own Kustomization's (and the release gate's) business.
+  healthChecks:
+    - { apiVersion: apps/v1, kind: Deployment, name: site, namespace: site-staging }
   timeout: 5m
   sourceRef:
     kind: GitRepository

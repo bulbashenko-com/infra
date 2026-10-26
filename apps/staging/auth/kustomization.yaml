@@ -1,0 +1,16 @@
+# Ory in staging: the Secret `auth` (staging databases, its own keys, mail to mailpit) and the Flux objects that
+# deploy bulbashenko-com/auth's staging component (flux.yaml). Hosts: auth.bulbashenko.dev, users.int and
+# mailpit.int.bulbashenko.dev (mesh only).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: auth-staging
+labels:
+  - pairs:
+      bulbashenko.com/layer: app
+      bulbashenko.com/app: auth
+      bulbashenko.com/env: staging
+    includeSelectors: false
+resources:
+  - secret.sops.yaml
+  - rbac.yaml
+  - flux.yaml

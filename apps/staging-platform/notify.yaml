@@ -1,0 +1,30 @@
+# Staging's verdict to GitHub: every event of the staging Kustomization `auth` (its health includes the e2e Job,
+# bulbashenko-com/auth deploy/staging/e2e.yaml) becomes a repository_dispatch in infra, where
+# .github/workflows/staging-gate.yml turns it into the commit status `staging/e2e` on dev, which the release PR
+# needs. Authenticated as the deploy GitHub App (contents: write on infra); its key never reaches staging.
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
+kind: Provider
+metadata:
+  name: infra-dispatch
+  namespace: flux-system
+  labels: { bulbashenko.com/layer: platform, bulbashenko.com/app: staging }
+spec:
+  type: githubdispatch
+  address: https://github.com/bulbashenko-com/infra
+  secretRef:
+    name: github-app
+---
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
+kind: Alert
+metadata:
+  name: staging-auth
+  namespace: flux-system
+  labels: { bulbashenko.com/layer: platform, bulbashenko.com/app: staging }
+spec:
+  providerRef:
+    name: infra-dispatch
+  eventSeverity: info
+  eventSources:
+    - kind: Kustomization
+      name: auth
+      namespace: auth-staging

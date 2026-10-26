@@ -4,3 +4,4 @@ kind: Kustomization
 # (apps/staging-platform/rbac.yaml).
 resources:
   - site
+  - auth
