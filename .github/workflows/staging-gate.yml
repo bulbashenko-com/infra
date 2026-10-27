@@ -1,13 +1,13 @@
 # The commit status `staging/e2e` on dev (the head of the release PR dev -> main), required to merge into main.
-# - Flux reports every result of the staging Kustomization `auth` as a repository_dispatch (apps/staging-platform/
-#   notify.yaml); its health includes the e2e Job. A result for the auth commit that dev pins sets the status.
+# - Flux reports every result of the staging Kustomization `auth-e2e` as a repository_dispatch (apps/staging-platform/
+#   notify.yaml); its health is the e2e Job. A result for the auth commit that dev pins sets the status.
 # - A push to dev keeps the verdict when the auth pin did not change, and resets it to pending when it did.
 # - A pull request into main from anything but dev (a hotfix) is not a release of staging: the status says so.
 name: staging-gate
 
 on:
   repository_dispatch:
-    types: [Kustomization/auth.auth-staging]
+    types: [Kustomization/auth-e2e.auth-staging]
   push:
     branches: [dev]
   pull_request:
