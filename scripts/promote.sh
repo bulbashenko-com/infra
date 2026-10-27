@@ -16,14 +16,15 @@ org=bulbashenko-com
 infra=$org/infra
 target=dev
 
-# Where each app is pinned (all pins in the file must carry the same SHA), its image, and for
-# Git-sourced apps the paths Flux reads (the GitRepository `ignore` list): other changes need no deploy.
+# Where each app is pinned (all pins in all its files must carry the same SHA; one file per environment that runs
+# it), its image, and for Git-sourced apps the paths Flux reads (the GitRepository `ignore` list): other changes
+# need no deploy.
 image='' deploy_paths=''
 case $app in
-  site)      file=apps/base/site/kustomization.yaml; keys=newTag; image=ghcr.io/$org/site ;;
-  auth)      file=clusters/hel1/auth.yaml; keys='commit|newTag'; image=ghcr.io/$org/auth-ui ;;
-  mail)      file=clusters/hel1/mail.yaml; keys=commit; deploy_paths='^(kustomization\.yaml|deploy/k8s/)' ;;
-  teamspeak) file=clusters/hel1/teamspeak.yaml; keys=commit; deploy_paths='^(kustomization\.yaml|deploy/k8s/)' ;;
+  site)      files=(apps/base/site/kustomization.yaml); keys=newTag; image=ghcr.io/$org/site ;;
+  auth)      files=(clusters/hel1/auth.yaml apps/staging/auth/flux.yaml); keys='commit|newTag'; image=ghcr.io/$org/auth-ui ;;
+  mail)      files=(clusters/hel1/mail.yaml); keys=commit; deploy_paths='^(kustomization\.yaml|deploy/k8s/)' ;;
+  teamspeak) files=(clusters/hel1/teamspeak.yaml); keys=commit; deploy_paths='^(kustomization\.yaml|deploy/k8s/)' ;;
   *) echo "unknown app: $app" >&2; exit 1 ;;
 esac
 pin_re="^([[:space:]]*(${keys}): )([0-9a-f]{40})$"
@@ -48,13 +49,16 @@ fi
 # Called as `attempt || rc=$?`, where set -e does not apply: every API result is checked by hand.
 fail() { echo "$*" >&2; exit 1; }
 attempt() {
-  local head current old cmp status subject msg content tree commit
+  local head old cmp status subject msg tree commit f entries
+  local -A current=() content=()
   head=$(gh api "repos/$infra/git/ref/heads/$target" -q .object.sha) || fail "cannot read $target"
-  current=$(gh api "repos/$infra/contents/$file?ref=$head" -q .content | base64 -d; echo x); current=${current%x}
-  [ "$current" != "" ] || fail "cannot read $file at ${head:0:7}"
+  for f in "${files[@]}"; do
+    current[$f]=$(gh api "repos/$infra/contents/$f?ref=$head" -q .content | base64 -d; echo x); current[$f]=${current[$f]%x}
+    [ "${current[$f]}" != "" ] || fail "cannot read $f at ${head:0:7}"
+  done
 
-  mapfile -t pins < <(pinned <<<"$current")
-  [ ${#pins[@]} -eq 1 ] || { echo "expected one pinned SHA in $file, found: ${pins[*]:-none}" >&2; exit 1; }
+  mapfile -t pins < <(for f in "${files[@]}"; do pinned <<<"${current[$f]}"; done | sort -u)
+  [ ${#pins[@]} -eq 1 ] || fail "expected one pinned SHA in ${files[*]}, found: ${pins[*]:-none}"
   old=${pins[0]}
   if [ "$sha" = "$old" ]; then echo "$app is already pinned to $short on $target"; return 0; fi
 
@@ -84,15 +88,22 @@ attempt() {
     echo "Source: https://github.com/$org/$app/compare/$old...$sha"
   )
 
-  content=$(sed -E "s/${pin_re}/\1${sha}/" <<<"${current%$'\n'}"; echo x); content=${content%x}
+  entries='[]'
+  for f in "${files[@]}"; do
+    content[$f]=$(sed -E "s/${pin_re}/\1${sha}/" <<<"${current[$f]%$'\n'}"; echo x); content[$f]=${content[$f]%x}
+    entries=$(jq --arg path "$f" --arg content "${content[$f]}" \
+      '. + [{path: $path, mode: "100644", type: "blob", content: $content}]' <<<"$entries")
+  done
   if [ -n "${DRY_RUN:-}" ]; then
-    diff -u --label "a/$file" --label "b/$file" <(printf '%s' "$current") <(printf '%s' "$content") || true
+    for f in "${files[@]}"; do
+      diff -u --label "a/$f" --label "b/$f" <(printf '%s' "${current[$f]}") <(printf '%s' "${content[$f]}") || true
+    done
     printf '\n--- commit message\n%s\n' "$msg"
     return 0
   fi
 
-  tree=$(jq -n --arg base "$(gh api "repos/$infra/git/commits/$head" -q .tree.sha)" --arg path "$file" --arg content "$content" \
-    '{base_tree: $base, tree: [{path: $path, mode: "100644", type: "blob", content: $content}]}' |
+  tree=$(jq -n --arg base "$(gh api "repos/$infra/git/commits/$head" -q .tree.sha)" --argjson entries "$entries" \
+    '{base_tree: $base, tree: $entries}' |
     gh api "repos/$infra/git/trees" --input - -q .sha) || fail "cannot create the tree"
   commit=$(jq -n --arg msg "$msg" --arg tree "$tree" --arg parent "$head" \
     '{message: $msg, tree: $tree, parents: [$parent]}' |

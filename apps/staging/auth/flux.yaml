@@ -1,0 +1,76 @@
+# Ory from bulbashenko-com/auth in staging: the repo's root base plus its staging component (deploy/staging), at
+# the same commit and image as production (clusters/hel1/auth.yaml), then the e2e run against it (auth-e2e).
+# scripts/promote.sh changes all pins in one commit on dev: staging runs it at once, production with the release.
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: auth
+spec:
+  interval: 10m
+  url: https://github.com/bulbashenko-com/auth.git
+  ref:
+    commit: d6004eff4fea6effd91e8d4e16a264e5bc86741e
+  ignore: |
+    /*
+    !/kustomization.yaml
+    !/deploy/k8s/
+    !/deploy/staging/
+    !/deploy/staging-e2e/
+    !/ory/
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: auth
+spec:
+  interval: 10m
+  sourceRef:
+    kind: GitRepository
+    name: auth
+  path: ./
+  components:
+    - deploy/staging
+  targetNamespace: auth-staging
+  # As the dev-side Kustomization that created it: rights in this namespace only (rbac.yaml).
+  serviceAccountName: staging-reconciler
+  commonMetadata:
+    labels:
+      bulbashenko.com/layer: app
+      bulbashenko.com/app: auth
+      bulbashenko.com/env: staging
+  prune: true
+  wait: true
+  timeout: 10m
+  images:
+    - name: ghcr.io/bulbashenko-com/auth-ui
+      newTag: d6004eff4fea6effd91e8d4e16a264e5bc86741e
+---
+# The e2e suite against the stack above, after it: Flux starts it only once `auth` is ready on the same source
+# revision, and the Job itself waits for the commit its image was built from. Its own Kustomization, so the stack's
+# health never waits for tests. Its result is the release gate (apps/staging-platform/notify.yaml, staging-gate.yml).
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: auth-e2e
+spec:
+  interval: 10m
+  dependsOn:
+    - name: auth
+  sourceRef:
+    kind: GitRepository
+    name: auth
+  path: ./deploy/staging-e2e
+  targetNamespace: auth-staging
+  serviceAccountName: staging-reconciler
+  commonMetadata:
+    labels:
+      bulbashenko.com/layer: app
+      bulbashenko.com/app: auth
+      bulbashenko.com/env: staging
+  prune: true
+  # The run takes about 10 minutes.
+  wait: true
+  timeout: 30m
+  images:
+    - name: ghcr.io/bulbashenko-com/auth-e2e
+      newTag: d6004eff4fea6effd91e8d4e16a264e5bc86741e

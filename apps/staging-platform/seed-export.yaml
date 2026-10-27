@@ -15,7 +15,7 @@ spec:
   failedJobsHistoryLimit: 2
   jobTemplate:
     spec:
-      backoffLimit: 3
+      backoffLimit: 6
       template:
         metadata:
           labels: { bulbashenko.com/layer: app, bulbashenko.com/app: staging }
@@ -83,7 +83,7 @@ metadata:
   annotations:
     kustomize.toolkit.fluxcd.io/force: enabled
 spec:
-  backoffLimit: 3
+  backoffLimit: 6
   template:
     metadata:
       labels: { bulbashenko.com/layer: app, bulbashenko.com/app: staging }

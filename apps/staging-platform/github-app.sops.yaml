@@ -1,0 +1,34 @@
+apiVersion: v1
+kind: Secret
+metadata:
+    name: github-app
+    namespace: flux-system
+stringData:
+    githubAppID: ENC[AES256_GCM,data:Gbtw9XA0Uw==,iv:Q9P0aa9p+mZSv0kT66SQw00drz/kMPmpQhmtWlUV1Oo=,tag:02gU6+4hUXIgwYH/0W4fjw==,type:str]
+    githubAppInstallationID: ENC[AES256_GCM,data:7WzwHVWze+q0,iv:o5nCHAdoMG0ISXprhsPNY4MkmdNiUl337oDeh6NIYw4=,tag:kTdV8bR7LG45PBcWC87EYw==,type:str]
+    githubAppPrivateKey: ENC[AES256_GCM,data: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,iv:+SFwM0neOvfQwpe+ni5V5iMyozIRL4d5GVy1wVOLB9g=,tag:usEF/g/y6HhxRgn5xIwFtw==,type:str]
+type: Opaque
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBkNVE2OFFYTm9hSU45L2tF
+            QVR2U243SCtYNEpPdUM2cjBBNlBuUXREeHljCjJpa29NTEdMY0E4SGFlc2p4eFZ1
+            QWVZZkk3WlQzczM2R0ZQSGl2MWNqWXMKLS0tIGRVeSswT0F5VVZUOWtNTEZoY1NP
+            L0tIUGlnK0ZkbG5vT0Y4eTdUeFpUMTAKy6T+AudJgyXK7H0JX3MckztLHUAevSQe
+            3I0HDiqwQYf/mbwXwel2plFttbgT9jcP9CrVk3tFElWBuMzForb+Mg==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age12qgx04vs6thq39ym6jl5wlgcymjzrdln7w6wyck7px28k4p8fedq09dq5g
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBtQy9MTlF4R2lKbFVoVG5p
+            ODZtU0FpeUFoQ1lZMzMvTVlaR2pPaVhHK25JClo2ajlreXRob3o0N2hiOEkwMlo2
+            NDQzK2xiM0F1eUR5d001bk9QY3JwV1kKLS0tIDI5cDdnb1YvbHAzeHJ3WEx4N1VU
+            L29VY3VITUpOamJrUFhIaGdnYTM3K1EK9kSD/TzR0CeSIRLzHQ433x97TRzGy9MH
+            YO6m6AvBSQmG2OhXIUbfr2U8gScSLzM/7gGRaGJM5GTNXqrK12Eg0A==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age1c9jlhvq47psz20sl2wu7d2jwstjjylfx769tuumree8hdf5klf2sjluulk
+    encrypted_regex: ^(data|stringData)$
+    lastmodified: "2026-10-26T23:26:56Z"
+    mac: ENC[AES256_GCM,data:UUP+ox3gzCFqz7Ju2FW0IPH4hx6ZNXr5Shuj3YJPuG6FvKJ+XpnrL52F7F5I7rkt6UHF3Cvu69NAkBMvNzihuEgazBoZCD01DpP4qPFW7G++AEoqRVQeskl2jkLWfE7SSoaeVYNc8sseWOzQ5wwi8Ar7raiPSGWxN6G3yywnI2k=,iv:MlS8PEWwUv8svbhdJu24xW0gOo0qtGgvDh4TNT/jsqw=,tag:Ry2IAycm62/jthlVbExa6g==,type:str]
+    version: 3.13.3

@@ -1,0 +1,75 @@
+# The commit status `staging/e2e` on dev (the head of the release PR dev -> main), required to merge into main.
+# - Flux reports every result of the staging Kustomization `auth-e2e` as a repository_dispatch (apps/staging-platform/
+#   notify.yaml); its health is the e2e Job. A result for the auth commit that dev pins sets the status.
+# - A push to dev keeps the verdict when the auth pin did not change, and resets it to pending when it did.
+# - A pull request into main from anything but dev (a hotfix) is not a release of staging: the status says so.
+name: staging-gate
+
+on:
+  repository_dispatch:
+    types: [Kustomization/auth-e2e.auth-staging]
+  push:
+    branches: [dev]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: write
+
+concurrency:
+  group: staging-gate
+  cancel-in-progress: false
+
+jobs:
+  status:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: dev
+          fetch-depth: 0
+      - name: Set staging/e2e
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.event.after }}
+          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          SEVERITY: ${{ github.event.client_payload.severity }}
+          REASON: ${{ github.event.client_payload.reason }}
+          REVISION: ${{ github.event.client_payload.metadata.revision }}
+          MESSAGE: ${{ github.event.client_payload.message }}
+        run: |
+          set -euo pipefail
+          ctx=staging/e2e
+          pin() { git show "$1:clusters/hel1/auth.yaml" | sed -nE 's/^ +commit: ([0-9a-f]{40})$/\1/p'; }
+          set_status() { # sha state description
+            gh api "repos/$GITHUB_REPOSITORY/statuses/$1" -f state="$2" -f context="$ctx" -f description="${3:0:140}" \
+              -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >/dev/null
+            echo "$ctx on ${1:0:7}: $2 ($3)"
+          }
+          last_state() { gh api "repos/$GITHUB_REPOSITORY/commits/$1/status" -q ".statuses[] | select(.context == \"$ctx\") | .state" | head -1; }
+          tip=$(git rev-parse origin/dev)
+          case $EVENT in
+            repository_dispatch)
+              rev=${REVISION##*:}; want=$(pin "$tip")
+              if [ "$rev" != "$want" ]; then echo "result for ${rev:0:7}, dev pins ${want:0:7}: ignored"; exit 0; fi
+              if [ "$SEVERITY" = error ]; then set_status "$tip" failure "auth ${rev:0:7}: $REASON"
+              elif [ "$REASON" = ReconciliationSucceeded ]; then set_status "$tip" success "auth ${rev:0:7} healthy, e2e passed"
+              else echo "event $REASON: no verdict"; fi ;;
+            push)
+              if [ -z "${BEFORE//0/}" ] || [ "$(pin "$BEFORE")" != "$(pin "$AFTER")" ]; then
+                set_status "$AFTER" pending "auth $(pin "$AFTER" | cut -c1-7): waiting for staging"
+              else
+                state=$(last_state "$BEFORE"); state=${state:-pending}
+                set_status "$AFTER" "$state" "auth $(pin "$AFTER" | cut -c1-7) unchanged since ${BEFORE:0:7}"
+              fi ;;
+            pull_request)
+              if [ "$PR_HEAD_REF" != dev ]; then set_status "$PR_HEAD_SHA" success "hotfix, not a staging release"; fi ;;
+            workflow_dispatch)
+              echo "dev ${tip:0:7}: $(last_state "$tip")" ;;
+          esac
