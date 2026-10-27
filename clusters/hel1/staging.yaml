@@ -24,6 +24,11 @@ spec:
   sourceRef:
     kind: GitRepository
     name: flux-system
+  # github-app.sops.yaml (the deploy App's key for notify.yaml).
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-age
 ---
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: GitRepository
