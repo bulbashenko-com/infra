@@ -13,7 +13,7 @@ spec:
   interval: 10m
   url: https://github.com/bulbashenko-com/auth.git
   ref:
-    commit: d6004eff4fea6effd91e8d4e16a264e5bc86741e
+    commit: db3ef21b9042d85c99a38bcdb268e968c0640c0f
   ignore: |
     /*
     !/kustomization.yaml
@@ -52,4 +52,4 @@ spec:
           value: { bulbashenko.com/secret-revision: "1" }
   images:
     - name: ghcr.io/bulbashenko-com/auth-ui
-      newTag: d6004eff4fea6effd91e8d4e16a264e5bc86741e
+      newTag: db3ef21b9042d85c99a38bcdb268e968c0640c0f
