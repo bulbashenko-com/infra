@@ -29,7 +29,7 @@ spec:
   values:
     # Bump when secret.sops.yaml changes: env from a Secret is read only at pod start.
     podAnnotations:
-      bulbashenko.com/secret-revision: "2"
+      bulbashenko.com/secret-revision: "3"
     podLabels: &labels
       bulbashenko.com/layer: app
       bulbashenko.com/app: nextcloud
