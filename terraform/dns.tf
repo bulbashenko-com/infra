@@ -12,6 +12,16 @@ resource "cloudflare_dns_record" "apex" {
   zone_id = var.cloudflare_zone_id
 }
 
+resource "cloudflare_dns_record" "cloud" {
+  comment = "[nextcloud] files, calendars and contacts (public), via Tunnel"
+  content = local.tunnel_cname
+  name    = "cloud.bulbashenko.com"
+  proxied = true
+  ttl     = 1
+  type    = "CNAME"
+  zone_id = var.cloudflare_zone_id
+}
+
 resource "cloudflare_dns_record" "auth" {
   comment = "[auth] Ory login and OIDC issuer (public), via Tunnel"
   content = local.tunnel_cname

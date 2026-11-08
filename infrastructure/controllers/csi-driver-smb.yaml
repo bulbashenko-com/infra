@@ -1,0 +1,33 @@
+# SMB CSI driver: mounts the Storage Box share for Nextcloud (apps/production/nextcloud). The mount needs the host's
+# cifs kernel module (linux-modules-extra; cloud-init installs it on new nodes).
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: csi-driver-smb
+  namespace: kube-system
+  labels:
+    bulbashenko.com/app: smb-csi
+spec:
+  interval: 12h
+  url: https://raw.githubusercontent.com/kubernetes-csi/csi-driver-smb/master/charts
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: csi-driver-smb
+  namespace: kube-system
+  labels:
+    bulbashenko.com/app: smb-csi
+spec:
+  interval: 1h
+  chart:
+    spec:
+      chart: csi-driver-smb
+      version: 1.20.4
+      sourceRef:
+        kind: HelmRepository
+        name: csi-driver-smb
+  commonMetadata:
+    labels:
+      bulbashenko.com/layer: platform
+      bulbashenko.com/app: smb-csi

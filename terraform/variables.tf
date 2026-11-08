@@ -60,3 +60,9 @@ variable "storage_box_hel1_password" {
   type        = string
   sensitive   = true
 }
+
+variable "storage_box_nextcloud_password" {
+  description = "Password of the nextcloud Storage Box subaccount (also in apps/production/nextcloud/smb-secret.sops.yaml)."
+  type        = string
+  sensitive   = true
+}

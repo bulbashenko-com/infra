@@ -21,6 +21,8 @@ packages:
   - curl
   - ca-certificates
   - unattended-upgrades
+  # Pulls linux-modules-extra, which holds the cifs module for csi-driver-smb.
+  - linux-generic
 
 write_files:
   # hel1-net: when the network is attached after the first boot, cloud-init does not configure the NIC.

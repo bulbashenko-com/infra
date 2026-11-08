@@ -1,0 +1,24 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: nextcloud
+# Ownership labels (see README: Labels). Selectors are left alone.
+labels:
+  - pairs:
+      bulbashenko.com/layer: app
+      bulbashenko.com/app: nextcloud
+    includeSelectors: false
+    includeTemplates: true
+resources:
+  - namespace.yaml
+  - secret.sops.yaml
+  - smb-secret.sops.yaml
+  - storage.yaml
+  - valkey.yaml
+  - release.yaml
+  - route.yaml
+  - backup.yaml
+  - scrapes.yaml
+configMapGenerator:
+  - name: volume-backup
+    files:
+      - volume-backup.sh

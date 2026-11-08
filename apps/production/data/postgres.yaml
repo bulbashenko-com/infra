@@ -70,6 +70,10 @@ spec:
         ensure: present
         login: true
         passwordSecret: { name: pg-role-stalwart }
+      - name: nextcloud
+        ensure: present
+        login: true
+        passwordSecret: { name: pg-role-nextcloud }
       # Staging (apps/staging): own roles and databases in this cluster, nothing shared with production.
       - name: bulbashenko_staging
         ensure: present
@@ -123,6 +127,15 @@ spec:
   cluster: { name: pg }
   name: stalwart
   owner: stalwart
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: nextcloud
+spec:
+  cluster: { name: pg }
+  name: nextcloud
+  owner: nextcloud
 ---
 apiVersion: postgresql.cnpg.io/v1
 kind: Database

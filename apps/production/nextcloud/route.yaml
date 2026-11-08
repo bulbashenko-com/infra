@@ -1,0 +1,24 @@
+# Public through Cloudflare Tunnel -> Traefik `web`.
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: nextcloud
+spec:
+  entryPoints: [web]
+  routes:
+    - match: Host(`cloud.bulbashenko.com`)
+      services: [{ name: nextcloud, port: 8080 }]
+    - match: Host(`cloud.bulbashenko.com`) && (PathPrefix(`/remote.php`) || PathPrefix(`/public.php`))
+      middlewares: [{ name: no-shared-cache }]
+      services: [{ name: nextcloud, port: 8080 }]
+---
+# Cloudflare caches by file extension, and DAV paths end in the user's own .jpg or .pdf. It does not store responses
+# marked private, so user files never land in the shared cache.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: no-shared-cache
+spec:
+  headers:
+    customResponseHeaders:
+      Cache-Control: private, no-store
