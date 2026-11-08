@@ -1,5 +1,6 @@
 # SMB CSI driver: mounts the Storage Box share for Nextcloud (apps/production/nextcloud). The mount needs the host's
-# cifs kernel module (linux-modules-extra; cloud-init installs it on new nodes).
+# cifs kernel module (package linux-modules-extra). It is not in cloud-init: hel1-core does not ignore user_data, so
+# changing that template would replace the mail server.
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: HelmRepository
 metadata:
