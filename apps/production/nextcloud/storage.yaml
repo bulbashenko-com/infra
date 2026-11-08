@@ -1,0 +1,61 @@
+# Files live on the Storage Box (subaccount in terraform/storage.tf), mounted over SMB. The PV source and the username in
+# smb-secret.sops.yaml must match output storage_box_nextcloud_username.
+# hard: wait out an unreachable box instead of failing writes (soft leaves truncated files). seal: encrypt in transit.
+# noserverino: the driver's example marks it as required to prevent data corruption.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: nextcloud-data
+  annotations:
+    pv.kubernetes.io/provisioned-by: smb.csi.k8s.io
+    kustomize.toolkit.fluxcd.io/prune: disabled
+spec:
+  capacity:
+    storage: 1Ti
+  accessModes: [ReadWriteMany]
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - seal
+    - hard
+    - noserverino
+    - uid=33
+    - gid=33
+    - dir_mode=0770
+    - file_mode=0660
+  csi:
+    driver: smb.csi.k8s.io
+    volumeHandle: nextcloud-data
+    volumeAttributes:
+      source: //u689140-sub2.your-storagebox.de/u689140-sub2
+    nodeStageSecretRef:
+      name: nextcloud-smb
+      namespace: nextcloud
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nextcloud-data
+  annotations:
+    kustomize.toolkit.fluxcd.io/prune: disabled
+spec:
+  accessModes: [ReadWriteMany]
+  storageClassName: ""
+  volumeName: nextcloud-data
+  resources:
+    requests:
+      storage: 1Ti
+---
+# Application code, config.php and installed apps. config/ is copied nightly by backup.yaml.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nextcloud-html
+  annotations:
+    kustomize.toolkit.fluxcd.io/prune: disabled
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 5Gi

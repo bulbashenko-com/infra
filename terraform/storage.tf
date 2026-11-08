@@ -46,3 +46,26 @@ resource "hcloud_storage_box_subaccount" "hel1_backups" {
 output "storage_box_hel1_backups_username" {
   value = hcloud_storage_box_subaccount.hel1_backups.username
 }
+
+# Nextcloud's data directory, mounted over SMB by the PV in apps/production/nextcloud. These files have no second copy
+# (owner's decision): only the box's own daily snapshots above.
+resource "hcloud_storage_box_subaccount" "nextcloud" {
+  storage_box_id = hcloud_storage_box.backups.id
+  home_directory = "nextcloud"
+  password       = var.storage_box_nextcloud_password
+  description    = "Nextcloud data directory (SMB)"
+  access_settings = {
+    ssh_enabled          = false
+    samba_enabled        = true
+    webdav_enabled       = false
+    reachable_externally = false
+    readonly             = false
+  }
+  lifecycle {
+    ignore_changes = [password]
+  }
+}
+
+output "storage_box_nextcloud_username" {
+  value = hcloud_storage_box_subaccount.nextcloud.username
+}

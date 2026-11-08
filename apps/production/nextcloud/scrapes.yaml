@@ -1,0 +1,10 @@
+# Metrics for the monitoring stack (infrastructure/configs/monitoring).
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMPodScrape
+metadata:
+  name: nextcloud
+spec:
+  selector:
+    matchLabels: { app.kubernetes.io/name: nextcloud, app.kubernetes.io/component: metrics }
+  podMetricsEndpoints:
+    - port: metrics

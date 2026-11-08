@@ -30,6 +30,7 @@ locals {
     "s3.bulbashenko.com",
     "autoconfig.bulbashenko.com",
     "autodiscover.bulbashenko.com",
+    "cloud.bulbashenko.com",
   ]
   tunnel_cname = "${cloudflare_zero_trust_tunnel_cloudflared.hel1.id}.cfargotunnel.com"
 }

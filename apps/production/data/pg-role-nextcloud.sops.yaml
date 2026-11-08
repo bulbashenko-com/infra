@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: Secret
+metadata:
+    name: pg-role-nextcloud
+    namespace: data
+    labels:
+        cnpg.io/reload: "true"
+type: kubernetes.io/basic-auth
+stringData:
+    username: ENC[AES256_GCM,data:dw4kQ/G49U9f,iv:WBheMwUToI+BzHYK9D+mT3Ctlu8wu4d0KTjg9cuDI1c=,tag:GB29iVqX8s7Wk+jJP/+AeA==,type:str]
+    password: ENC[AES256_GCM,data:nrM7YIOdN4IK19NebcobGbjIlSAUk2Ov+nxHcXx06fgrTqQUDILFiQ==,iv:SHzD2PT2/iW/PbB/yQ1M9F4eE1lUx5Uz2tqmvFEbCJY=,tag:sT9ABGb3+Ocfjbqil6CYKA==,type:str]
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBudEcxQmN3MUtWYUpUNzE0
+            SXZxTnpCbFJsZlpsK2xiM0FmdC91am1aSm1vClRZMWd4VnBlZmxRdm16d3lPWWxj
+            UzgrTG1lR2NZREZZcjM0cGxZM3VNNHcKLS0tIDV5M2UzVVFCWHV1d3psdmxPUkho
+            RGFuWHRvVm1vd3BGSG9hbk9qK1FVeUkKubazVQeJNqSywRoaD8o/PNWConVSx6fs
+            qVUJFFTKNuK8SZB8UYqNPHPlBjoxjNSSe2IpK1KFC7pHtUbhgfNhWw==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age12qgx04vs6thq39ym6jl5wlgcymjzrdln7w6wyck7px28k4p8fedq09dq5g
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBtcUxLZUFpQzNKeFZ1MkdN
+            TGRqK0ZOZjZKVjkxRy96YjdIVktNQjduZW5nCkFGMzlnR2VGRDdacWxKT28xWlpx
+            QmRubXN1czJuRkVzV1pFK3o1Z2xuKzgKLS0tICtzYjB4MUZNNHNNbVFuUVhPeFdR
+            YnZZNE5aN3hGUFFqU2R5R2NObWJvZDgKqRWoM206N+XAEKanh0p4VwhM0uQyc/hM
+            VI6+DVDxBLa0UEw1MNSbou/DlEMbqgejyGuzrYmsH/blowRQl+cHrQ==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age1c9jlhvq47psz20sl2wu7d2jwstjjylfx769tuumree8hdf5klf2sjluulk
+    encrypted_regex: ^(data|stringData)$
+    lastmodified: "2026-11-08T15:08:20Z"
+    mac: ENC[AES256_GCM,data:rSwQkFg0P3KAwA8lp4CZ4Ag/ocyDkHIuPTFae1kH2x0+yKzv0f1io0k2LTtZRqFF59gpfH0DkgFF5m8RKqesAowH67YpH04obTThg2uWhrzLgtmedi5MFzfsxVgTp0AO+yFsNVYr70gTjD331Bsh18lpLLNJ+3aZXkOR9d7PXrk=,iv:QwcapbVUkF0N0cbi9PZvu6txtQfx3QZKf1VfGXI/lP8=,tag:ZQxRlPLcrhgVARwhabQtUQ==,type:str]
+    version: 3.13.3

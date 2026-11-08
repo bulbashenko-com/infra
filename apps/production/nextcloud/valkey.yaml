@@ -1,0 +1,49 @@
+# Cache and file locks for Nextcloud. Nothing here needs to survive a restart, so no volume.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: valkey
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: valkey }
+  template:
+    metadata:
+      labels: { app: valkey }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 1000
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: valkey
+          image: docker.io/valkey/valkey:9.0.7-alpine
+          args: ["--requirepass", "$(VALKEY_PASSWORD)", "--save", "", "--appendonly", "no", "--maxmemory", "96mb", "--maxmemory-policy", "allkeys-lru"]
+          env:
+            - name: VALKEY_PASSWORD
+              valueFrom: { secretKeyRef: { name: nextcloud, key: redis-password } }
+          ports:
+            - { name: valkey, containerPort: 6379 }
+          readinessProbe:
+            tcpSocket: { port: valkey }
+          resources:
+            requests: { cpu: 10m, memory: 32Mi }
+            limits: { memory: 128Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          volumeMounts:
+            - { name: data, mountPath: /data }
+      volumes:
+        - { name: data, emptyDir: {} }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: valkey
+spec:
+  selector: { app: valkey }
+  ports:
+    - { name: valkey, port: 6379, targetPort: valkey }
