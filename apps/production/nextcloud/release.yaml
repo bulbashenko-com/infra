@@ -1,0 +1,150 @@
+# Nextcloud from the official chart. Major versions must be upgraded one at a time, and each chart major follows one.
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: nextcloud
+spec:
+  interval: 12h
+  url: https://nextcloud.github.io/helm/
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: nextcloud
+spec:
+  interval: 1h
+  # The first start installs Nextcloud onto SMB, which is slow.
+  timeout: 20m
+  chart:
+    spec:
+      chart: nextcloud
+      version: 9.4.1
+      sourceRef:
+        kind: HelmRepository
+        name: nextcloud
+  commonMetadata:
+    labels:
+      bulbashenko.com/layer: app
+      bulbashenko.com/app: nextcloud
+  values:
+    podLabels: &labels
+      bulbashenko.com/layer: app
+      bulbashenko.com/app: nextcloud
+    nextcloud:
+      host: cloud.bulbashenko.com
+      existingSecret:
+        enabled: true
+        secretName: nextcloud
+        usernameKey: nextcloud-username
+        passwordKey: nextcloud-password
+        tokenKey: nextcloud-token
+        smtpUsernameKey: smtp-username
+        smtpPasswordKey: smtp-password
+        smtpHostKey: smtp-host
+      mail:
+        enabled: true
+        fromAddress: noreply
+        domain: bulbashenko.com
+        smtp:
+          secure: ssl
+          port: 465
+          authtype: LOGIN
+      configs:
+        cluster.config.php: |-
+          <?php
+          $CONFIG = array (
+            'overwritehost' => 'cloud.bulbashenko.com',
+            'overwriteprotocol' => 'https',
+            'overwrite.cli.url' => 'https://cloud.bulbashenko.com',
+            // cloudflared and Traefik run in the pod network.
+            'trusted_proxies' => array ('10.42.0.0/16'),
+            // SMB reports the mode from the mount options, not from chmod.
+            'check_data_directory_permissions' => false,
+            // Under Cloudflare's 100 MB request limit (the default here is 100 MiB). The iOS app ignores this value.
+            'files.chunked_upload.max_size' => 50000000,
+            'default_phone_region' => 'SK',
+            'maintenance_window_start' => 1,
+            // Container log instead of a file on the SMB share.
+            'log_type' => 'errorlog',
+          );
+      hooks:
+        # Runs on every start, so all of it is idempotent.
+        before-starting: |-
+          #!/bin/sh
+          set -eu
+          for app in calendar contacts user_oidc; do
+            php occ app:getpath "$app" >/dev/null 2>&1 || php occ app:install --keep-disabled "$app"
+            php occ app:enable "$app"
+          done
+          php occ config:app:set files default_quota --value="500 GB"
+          php occ config:app:set serverinfo token --value="$NC_METRICS_TOKEN"
+          # Straight to Ory; the local nc-admin stays reachable at /login?direct=1.
+          php occ config:app:set --type=string --value=0 user_oidc allow_multiple_user_backends
+          php occ user_oidc:provider ory \
+            --clientid=nextcloud \
+            --clientsecret-env=OIDC_CLIENT_SECRET \
+            --discoveryuri=https://auth.bulbashenko.com/.well-known/openid-configuration \
+            --unique-uid=0 \
+            --mapping-uid=preferred_username \
+            --mapping-email=email \
+            --mapping-display-name=name \
+            --mapping-groups=groups \
+            --group-provisioning=1 \
+            --group-whitelist-regex='/^cloud-users$/'
+          # The owner's Ory login. Exists after the first sign-in; takes effect on the next start.
+          if php occ user:info admin >/dev/null 2>&1; then php occ group:adduser admin admin; fi
+      extraEnv:
+        - name: OIDC_CLIENT_SECRET
+          valueFrom: { secretKeyRef: { name: nextcloud, key: oidc-client-secret } }
+        - name: NC_METRICS_TOKEN
+          valueFrom: { secretKeyRef: { name: nextcloud, key: nextcloud-token } }
+    internalDatabase:
+      enabled: false
+    externalDatabase:
+      enabled: true
+      type: postgresql
+      host: pg-rw.data.svc.cluster.local:5432
+      database: nextcloud
+      existingSecret:
+        enabled: true
+        secretName: nextcloud
+        usernameKey: db-username
+        passwordKey: db-password
+    externalRedis:
+      enabled: true
+      host: valkey
+      port: "6379"
+      existingSecret:
+        enabled: true
+        secretName: nextcloud
+        passwordKey: redis-password
+    persistence:
+      enabled: true
+      existingClaim: nextcloud-html
+      nextcloudData:
+        enabled: true
+        existingClaim: nextcloud-data
+    cronjob:
+      enabled: true
+      type: cronjob
+      cronjob:
+        podLabels: *labels
+        securityContext:
+          runAsUser: 33
+          runAsGroup: 33
+          runAsNonRoot: true
+        resources:
+          requests: { cpu: 20m, memory: 128Mi }
+          limits: { memory: 768Mi }
+    resources:
+      requests: { cpu: 100m, memory: 256Mi }
+      limits: { memory: 1536Mi }
+    startupProbe:
+      enabled: true
+      failureThreshold: 90
+    metrics:
+      enabled: true
+      podLabels: *labels
+      resources:
+        requests: { cpu: 5m, memory: 16Mi }
+        limits: { memory: 64Mi }

@@ -10,3 +10,4 @@ resources:
   - cloudnative-pg.yaml
   - barman-cloud.yaml
   - victoria-metrics-operator.yaml
+  - csi-driver-smb.yaml
