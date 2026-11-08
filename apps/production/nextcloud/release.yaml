@@ -27,6 +27,9 @@ spec:
       bulbashenko.com/layer: app
       bulbashenko.com/app: nextcloud
   values:
+    # Bump when secret.sops.yaml changes: env from a Secret is read only at pod start.
+    podAnnotations:
+      bulbashenko.com/secret-revision: "2"
     podLabels: &labels
       bulbashenko.com/layer: app
       bulbashenko.com/app: nextcloud
@@ -84,6 +87,8 @@ spec:
             --clientid=nextcloud \
             --clientsecret-env=OIDC_CLIENT_SECRET \
             --discoveryuri=https://auth.bulbashenko.com/.well-known/openid-configuration \
+            --scope='openid email profile groups' \
+            --send-id-token-hint=1 \
             --unique-uid=0 \
             --mapping-uid=preferred_username \
             --mapping-email=email \
