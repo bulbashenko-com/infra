@@ -15,7 +15,6 @@ spec:
     !/kustomization.yaml
     !/deploy/k8s/
     !/deploy/staging/
-    !/deploy/staging-e2e/
     !/ory/
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
@@ -45,9 +44,11 @@ spec:
     - name: ghcr.io/bulbashenko-com/auth-ui
       newTag: db3ef21b9042d85c99a38bcdb268e968c0640c0f
 ---
-# The e2e suite against the stack above, after it: Flux starts it only once `auth` is ready on the same source
-# revision, and the Job itself waits for the commit its image was built from. Its own Kustomization, so the stack's
-# health never waits for tests. Its result is the release gate (apps/staging-platform/notify.yaml, staging-gate.yml).
+# The e2e suite against the stack above, after it: Flux starts it only once `auth` is ready, and the Job itself waits
+# for the auth commit its image was built from. Its manifests live here (./e2e) and are read from dev (infra-dev), so
+# each result names the dev commit: Flux posts it as the commit status staging/auth-e2e on that commit, which merging
+# the release PR into main requires (apps/staging-platform/notify.yaml). Its own Kustomization, so the stack's health
+# never waits for tests.
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
@@ -58,8 +59,9 @@ spec:
     - name: auth
   sourceRef:
     kind: GitRepository
-    name: auth
-  path: ./deploy/staging-e2e
+    name: infra-dev
+    namespace: flux-system
+  path: ./apps/staging/auth/e2e
   targetNamespace: auth-staging
   serviceAccountName: staging-reconciler
   commonMetadata:
@@ -68,7 +70,7 @@ spec:
       bulbashenko.com/app: auth
       bulbashenko.com/env: staging
   prune: true
-  # The run takes about 10 minutes.
+  # The run takes about 12 minutes.
   wait: true
   timeout: 30m
   images:

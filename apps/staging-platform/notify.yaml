@@ -1,30 +1,76 @@
-# Staging's verdict to GitHub: every event of the staging Kustomization `auth-e2e` (its health is the e2e Job,
-# bulbashenko-com/auth deploy/staging-e2e) becomes a repository_dispatch in infra, where
-# .github/workflows/staging-gate.yml turns it into the commit status `staging/e2e` on dev, which the release PR
-# needs. Authenticated as the deploy GitHub App (contents: write on infra); its key never reaches staging.
+# Flux reports results to GitHub as commit statuses, authenticated as the deploy GitHub App (Secret github-app:
+# commit statuses write on infra; its key never reaches the staging namespaces). Statuses are only posted for
+# Kustomizations whose source is this repo, so the revision is an infra commit. GitHub drops repeats (same context,
+# state and description), so the 10-minute reconciles add nothing.
+#
+# - staging/<name> on the dev commit: the e2e runs in staging (Kustomizations auth-e2e and site-e2e, read from dev).
+#   The release PR dev -> main needs them green (ruleset `main`); .github/workflows/staging-gate.yml stands in for
+#   them on hotfix PRs, which are not a release of staging.
+# - prod/<name> on the main commit: each production Kustomization applied and healthy, so the release merge commit
+#   shows what has rolled out (.github/workflows/release-tag.yml waits for them).
 apiVersion: notification.toolkit.fluxcd.io/v1beta3
 kind: Provider
 metadata:
-  name: infra-dispatch
+  name: github-staging
   namespace: flux-system
   labels: { bulbashenko.com/layer: platform, bulbashenko.com/app: staging }
 spec:
-  type: githubdispatch
+  type: github
   address: https://github.com/bulbashenko-com/infra
   secretRef:
     name: github-app
+  commitStatusExpr: "'staging/' + event.involvedObject.name"
 ---
 apiVersion: notification.toolkit.fluxcd.io/v1beta3
 kind: Alert
 metadata:
-  name: staging-auth
+  name: staging-e2e
   namespace: flux-system
   labels: { bulbashenko.com/layer: platform, bulbashenko.com/app: staging }
 spec:
   providerRef:
-    name: infra-dispatch
+    name: github-staging
   eventSeverity: info
   eventSources:
     - kind: Kustomization
       name: auth-e2e
       namespace: auth-staging
+    - kind: Kustomization
+      name: site-e2e
+      namespace: auth-staging
+---
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
+kind: Provider
+metadata:
+  name: github-prod
+  namespace: flux-system
+  labels: { bulbashenko.com/layer: platform, bulbashenko.com/app: gitops }
+spec:
+  type: github
+  address: https://github.com/bulbashenko-com/infra
+  secretRef:
+    name: github-app
+  commitStatusExpr: "'prod/' + event.involvedObject.name"
+---
+# Only Kustomizations sourced from this repo's main (GitRepository flux-system). auth, mail and teamspeak are read
+# from their own repos: their revision is not an infra commit, and GitHub would refuse the status.
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
+kind: Alert
+metadata:
+  name: prod-status
+  namespace: flux-system
+  labels: { bulbashenko.com/layer: platform, bulbashenko.com/app: gitops }
+spec:
+  providerRef:
+    name: github-prod
+  eventSeverity: info
+  eventSources:
+    - { kind: Kustomization, name: flux-system }
+    - { kind: Kustomization, name: infrastructure-controllers }
+    - { kind: Kustomization, name: infrastructure }
+    - { kind: Kustomization, name: apps }
+    - { kind: Kustomization, name: site }
+    - { kind: Kustomization, name: nextcloud }
+    - { kind: Kustomization, name: edge }
+    - { kind: Kustomization, name: mail-base }
+    - { kind: Kustomization, name: staging-platform }
