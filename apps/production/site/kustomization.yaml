@@ -20,6 +20,8 @@ configMapGenerator:
       - MEDIA_PUBLIC_URL=https://media.bulbashenko.com
       - SKULL_MANIFEST_URL=https://media.bulbashenko.com/skull/current.json
       - NEXT_PUBLIC_SITE_URL=https://bulbashenko.com
+      # Read at run time by the sign-in flow (NEXT_PUBLIC_* is fixed at build time).
+      - SITE_URL=https://bulbashenko.com
       - OIDC_ISSUER=https://auth.bulbashenko.com
 patches:
   # Bump when secret.sops.yaml changes: env from a Secret is read only at pod start.
