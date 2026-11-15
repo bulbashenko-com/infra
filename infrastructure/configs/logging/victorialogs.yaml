@@ -33,9 +33,11 @@ spec:
       persistentVolume:
         enabled: true
         size: 10Gi
+      # 512Mi was OOMKilled on the first start, when the collectors send every pod's log history at once; the
+      # limit covers such bursts (a collector restart does the same), steady use is far lower.
       resources:
-        requests: { cpu: 50m, memory: 160Mi }
-        limits: { memory: 512Mi }
+        requests: { cpu: 50m, memory: 256Mi }
+        limits: { memory: 1Gi }
       vmServiceScrape:
         enabled: true
       # Its volume stays on the node of the first start: not hel1-core, which already holds Postgres,

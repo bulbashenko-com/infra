@@ -11,6 +11,8 @@ spec:
   template:
     metadata:
       labels: { app: site-e2e }
+      # Bump to run the suite again for the same site version (the Job is recreated when its template changes).
+      annotations: { bulbashenko.com/run: "2" }
     spec:
       restartPolicy: Never
       automountServiceAccountToken: false
