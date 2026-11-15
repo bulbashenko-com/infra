@@ -12,6 +12,8 @@ resources:
   - scrapes.yaml
   - route.yaml
   - rules.yaml
+  - telegram.sops.yaml
+  - flux-alerts.yaml
 # Our own dashboards; the Grafana sidecar picks up ConfigMaps labelled grafana_dashboard=1 in this namespace.
 configMapGenerator:
   - name: grafana-dashboards-bulbashenko

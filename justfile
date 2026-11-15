@@ -35,6 +35,33 @@ flux-github-app pem:
     PY
     echo "wrote $f; now delete {{pem}}"
 
+# one-time (owner): the Telegram bot for notifications. Writes the bot token (SOPS) and the chat id for Alertmanager,
+# sets the org secret/variable that GitHub Actions use (notify.yml), and lands it on dev through an auto-merging PR.
+# token: from @BotFather; chat_id: of the group the bot was added to (docs/workflow.md, "Уведомления").
+telegram token chat_id:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    [[ "{{chat_id}}" =~ ^-?[0-9]+$ ]] || { echo "chat_id must be a number" >&2; exit 1; }
+    curl -fsS "https://api.telegram.org/bot{{token}}/getMe" >/dev/null || { echo "Telegram rejects the token" >&2; exit 1; }
+    git fetch -q origin dev
+    branch=telegram-$(date +%s)
+    git switch -q -c "$branch" origin/dev
+    f=infrastructure/configs/monitoring/telegram.sops.yaml
+    printf 'apiVersion: v1\nkind: Secret\ntype: Opaque\nmetadata:\n  name: telegram\n  namespace: monitoring\nstringData:\n  token: %s\n' "{{token}}" \
+      | sops encrypt --filename-override "$f" --input-type yaml --output-type yaml /dev/stdin > "$f"
+    sed -i -E 's/^( +chat_id: )-?[0-9]+( # set by `just telegram`)$/\1{{chat_id}}\2/' infrastructure/configs/monitoring/stack.yaml
+    printf '%s' "{{token}}" | gh secret set TELEGRAM_BOT_TOKEN --org bulbashenko-com --visibility selected --repos infra
+    gh variable set TELEGRAM_CHAT_ID --org bulbashenko-com --visibility selected --repos infra --body "{{chat_id}}"
+    git commit -q -m "Connect the Telegram bot for notifications" -- "$f" infrastructure/configs/monitoring/stack.yaml
+    git push -q -u origin "$branch"
+    gh pr create --base dev --head "$branch" --title "Connect the Telegram bot for notifications" \
+      --body "Bot token (SOPS) and chat id for Alertmanager; org secret TELEGRAM_BOT_TOKEN and variable TELEGRAM_CHAT_ID for Actions. Applies with the release."
+    gh pr merge "$branch" --auto --merge
+    git switch -q -
+    curl -fsS "https://api.telegram.org/bot{{token}}/sendMessage" -d chat_id={{chat_id}} \
+      --data-urlencode text="Бот подключён. Уведомления начнут приходить после следующего релиза." >/dev/null
+    echo "done: PR on dev, test message sent"
+
 # one-time: tokens, age keys and GitHub secrets for OpenTofu in CI (owner; see the script header)
 tofu-ci-bootstrap:
     scripts/tofu-ci-bootstrap.sh

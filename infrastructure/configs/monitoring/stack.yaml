@@ -1,5 +1,5 @@
-# victoria-metrics-k8s-stack: VMSingle (storage), vmagent (scraping), vmalert + Alertmanager (rules; no receiver yet,
-# Telegram is infra#75), node-exporter, kube-state-metrics and Grafana. The operator itself is a separate release in
+# victoria-metrics-k8s-stack: VMSingle (storage), vmagent (scraping), vmalert + Alertmanager (rules; notifications go
+# to Telegram, see `alertmanager` below), node-exporter, kube-state-metrics and Grafana. The operator itself is a separate release in
 # infrastructure/controllers. Dashboards and rules are fetched from upstream by the chart's sync Job at deploy time.
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: OCIRepository
@@ -80,11 +80,80 @@ spec:
         resources:
           requests: { cpu: 10m, memory: 48Mi }
 
+    # One channel for everything that needs a human: Telegram. Sources are vmalert (rules.yaml and upstream rules)
+    # and Flux (flux-alerts.yaml: failed applies, health checks, staging e2e). Release summaries are sent from
+    # GitHub Actions to the same chat (.github/workflows/notify.yml): Alertmanager is not reachable from there.
+    # The bot token is the Secret `telegram` (telegram.sops.yaml), mounted at /etc/vm/secrets/telegram; the chat id
+    # is below. Both are set once by `just telegram <token> <chat_id>`. Docs: docs/workflow.md "Уведомления".
     alertmanager:
       spec:
         externalURL: ""
+        secrets: [telegram]
         resources:
           requests: { cpu: 10m, memory: 32Mi }
+      # The default Slack template is useless here.
+      monzoTemplate:
+        enabled: false
+      templateFiles:
+        telegram.tmpl: |-
+          {{ define "telegram.icon" -}}
+          {{ if eq .Status "resolved" }}✅{{ else if or (eq .Labels.severity "critical") (eq .Labels.severity "error") }}🔴{{ else if eq .Labels.severity "warning" }}🟡{{ else }}ℹ️{{ end }}
+          {{- end }}
+          {{ define "telegram.message" -}}
+          {{ range .Alerts -}}
+          {{ template "telegram.icon" . }} <b>
+          {{- if .Labels.reportingcontroller }}Flux: {{ .Labels.kind }} {{ .Labels.namespace }}/{{ .Labels.name }}{{ if eq .Labels.reason "HealthCheckFailed" }} не поднялся{{ else }} не применился{{ end }}
+          {{- else if .Annotations.summary }}{{ .Annotations.summary | html }}
+          {{- else }}{{ .Labels.alertname }}{{ end }}</b>{{ if eq .Status "resolved" }} — снова в норме{{ end }}
+          {{ if .Annotations.description }}{{ .Annotations.description | html }}{{ else if .Annotations.message }}<code>{{ .Annotations.message | reReplaceAll "(.{600}).*" "$1…" | html }}</code>{{ end }}
+          {{ end -}}
+          <a href="https://grafana.int.bulbashenko.com/d/health">Здоровье</a> · <a href="https://grafana.int.bulbashenko.com/d/rollout">Выкатка</a> · <a href="https://grafana.int.bulbashenko.com/d/logs">Логи</a>
+          {{- end }}
+      # Plain Alertmanager configuration (useManagedConfig: false), stored by the chart as the base config.
+      config:
+        global:
+          # Flux events carry no end time: an error that is not repeated within an hour counts as resolved.
+          resolve_timeout: 1h
+        route:
+          receiver: telegram
+          group_by: [alertname, namespace]
+          group_wait: 30s
+          group_interval: 5m
+          repeat_interval: 12h
+          routes:
+            # Heartbeat and inhibition helpers from the upstream rules.
+            - receiver: blackhole
+              matchers: ['alertname=~"Watchdog|InfoInhibitor"']
+            # Flux failures (flux-alerts.yaml): one message per object, repeated while it keeps failing.
+            - receiver: telegram-events
+              matchers: ['alertname=~"Flux.+"', 'reportingcontroller!=""']
+              group_by: [alertname, namespace, name]
+              group_wait: 10s
+              repeat_interval: 6h
+            # Upstream info-level rules (throttling, quota hints) are dashboard material, not messages.
+            - receiver: blackhole
+              matchers: ['severity="info"']
+        inhibit_rules:
+          - source_matchers: ['severity="critical"']
+            target_matchers: ['severity=~"warning|info"']
+            equal: [alertname, namespace]
+        receivers:
+          - name: blackhole
+          - name: telegram
+            telegram_configs:
+              - bot_token_file: /etc/vm/secrets/telegram/token
+                chat_id: 0 # set by `just telegram`
+                parse_mode: HTML
+                send_resolved: true
+                message: '{{ template "telegram.message" . }}'
+          # Events have no "resolved" state worth a message.
+          - name: telegram-events
+            telegram_configs:
+              - bot_token_file: /etc/vm/secrets/telegram/token
+                chat_id: 0 # set by `just telegram`
+                parse_mode: HTML
+                send_resolved: false
+                message: '{{ template "telegram.message" . }}'
 
     # k3s runs the controller manager, scheduler and kube-proxy inside the k3s process, bound to localhost:
     # nothing to scrape from the pod network.

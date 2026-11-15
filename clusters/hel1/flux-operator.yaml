@@ -32,6 +32,10 @@ spec:
     kind: OCIRepository
     name: flux-operator
   values:
+    # How often the operator refreshes its report and the flux_resource_info metric behind the "Выкатка" dashboard
+    # and the ReleaseStuck rule (default 5m: too slow to watch a rollout).
+    reporting:
+      interval: 1m
     web:
       # Sign-in and settings for the web UI (flux.int.bulbashenko.com), from infrastructure/configs/flux-web.
       configSecretName: flux-web-config
