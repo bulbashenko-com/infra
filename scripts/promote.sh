@@ -45,6 +45,16 @@ if [ -n "$image" ] && ! docker manifest inspect "$image:$sha" >/dev/null 2>&1; t
   echo "image $image:$sha not found (did the app's image build finish?)" >&2; exit 1
 fi
 
+# True when every commit in the compare result <json> belongs to a pull request labelled `security`.
+security_only() {
+  local c labels
+  for c in $(jq -r '.commits[].sha' <<<"$1"); do
+    labels=$(gh api "repos/$org/$app/commits/$c/pulls" -q '[.[].labels[].name] | join(" ")') || return 1
+    [[ " $labels " == *" security "* ]] || return 1
+  done
+  [ "$(jq '.commits | length' <<<"$1")" -gt 0 ]
+}
+
 # One attempt against the current tip of $target; returns 2 when it moved underneath (retry).
 # Called as `attempt || rc=$?`, where set -e does not apply: every API result is checked by hand.
 fail() { echo "$*" >&2; exit 1; }
@@ -86,6 +96,9 @@ attempt() {
     esac
     echo
     echo "Source: https://github.com/$org/$app/compare/$old...$sha"
+    # Only security updates (every new commit came from a PR labelled `security`, which Renovate sets on
+    # vulnerability fixes): scripts/release-pr.sh may then let the release merge itself (docs/workflow.md).
+    if [ "$status" = ahead ] && security_only "$cmp"; then echo; echo "Security-Update: yes"; fi
   )
 
   entries='[]'

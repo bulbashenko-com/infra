@@ -46,4 +46,8 @@ jobs:
         run: |
           gh api repos/bulbashenko-com/infra/dispatches -f event_type=promote \
             -f "client_payload[app]=$APP" -f "client_payload[sha]=$SHA"
-          echo "Deploy PR for $APP@${SHA:0:7} requested: https://github.com/bulbashenko-com/infra/pulls?q=is%3Aopen+head%3Adeploy%2F$APP" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "Pin of $APP@${SHA:0:7} on infra \`dev\` requested: staging runs it within a minute or two."
+            echo "- pins on dev: https://github.com/bulbashenko-com/infra/commits/dev"
+            echo "- release PR (production): https://github.com/bulbashenko-com/infra/pulls?q=is%3Aopen+label%3Arelease"
+          } >> "$GITHUB_STEP_SUMMARY"
