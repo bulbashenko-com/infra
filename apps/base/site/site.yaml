@@ -19,6 +19,24 @@ spec:
         runAsUser: 1000
         runAsGroup: 1000
         seccompProfile: { type: RuntimeDefault }
+      initContainers:
+        # Brings the database to this version's schema before the app starts (site repo scripts/migrate.mjs): marks
+        # the baseline on a database without migration history, applies new migrations, fails on drift. While it
+        # runs or fails, the old pod keeps serving; a failure shows as Flux health-check error and a Telegram alert.
+        - name: migrate
+          image: ghcr.io/bulbashenko-com/site-migrate:latest
+          envFrom:
+            - secretRef: { name: site }
+          resources:
+            requests: { cpu: 20m, memory: 128Mi }
+            limits: { memory: 384Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+            - { name: internal-ca, mountPath: /etc/internal-ca, readOnly: true }
       containers:
         - name: site
           image: ghcr.io/bulbashenko-com/site:latest
@@ -31,7 +49,7 @@ spec:
           ports:
             - { name: http, containerPort: 3000 }
           readinessProbe:
-            tcpSocket: { port: http }
+            httpGet: { path: /api/health, port: http }
           livenessProbe:
             tcpSocket: { port: http }
             periodSeconds: 20

@@ -1,0 +1,79 @@
+# The site's smoke suite (site repo e2e/, image site-e2e built from the commit pinned in ../flux.yaml) against
+# https://bulbashenko.dev, once per version: `force` recreates the Job whenever its image tag changes.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: site-e2e
+  annotations:
+    kustomize.toolkit.fluxcd.io/force: enabled
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      labels: { app: site-e2e }
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        # pwuser in the Playwright image.
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile: { type: RuntimeDefault }
+      initContainers:
+        # Test exactly this version: wait until the staging site reports the commit this image was built from
+        # (E2E_REVISION, baked into the image), i.e. the new pod passed its migration and is serving.
+        - name: wait
+          image: ghcr.io/bulbashenko-com/site-e2e:latest
+          env:
+            - { name: SITE_HEALTH, value: "https://bulbashenko.dev/api/health" }
+            - { name: EDGE, value: traefik.kube-system.svc.cluster.local }
+          command:
+            - node
+            - -e
+            - |
+              const https = await import("node:https")
+              const dns = await import("node:dns/promises")
+              const sleep = (s) => new Promise((r) => setTimeout(r, s * 1000))
+              const want = process.env.E2E_REVISION
+              const { address } = await dns.lookup(process.env.EDGE)
+              const url = new URL(process.env.SITE_HEALTH)
+              const get = () => new Promise((resolve) => {
+                const req = https.get({ host: address, servername: url.hostname, path: url.pathname,
+                  headers: { host: url.hostname } }, (res) => {
+                  let body = ""; res.on("data", (c) => (body += c)); res.on("end", () => resolve({ status: res.statusCode, body }))
+                })
+                req.on("error", (e) => resolve({ status: 0, body: String(e) }))
+              })
+              for (;;) {
+                const { status, body } = await get()
+                let revision = ""
+                try { revision = JSON.parse(body).revision } catch {}
+                if (status === 200 && revision === want) break
+                console.log(`waiting for ${want.slice(0, 7)} on bulbashenko.dev: ${status} ${revision || body.slice(0, 80)}`)
+                await sleep(10)
+              }
+          resources:
+            requests: { cpu: 10m, memory: 32Mi }
+          securityContext: &hardened
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+      containers:
+        - name: e2e
+          image: ghcr.io/bulbashenko-com/site-e2e:latest
+          env:
+            - { name: E2E_DOMAIN, value: bulbashenko.dev }
+            - { name: E2E_EDGE, value: traefik.kube-system.svc.cluster.local }
+            - { name: E2E_KRATOS_ADMIN, value: "http://kratos:4434" }
+            - { name: E2E_KETO_WRITE, value: "http://keto:4467" }
+          resources:
+            requests: { cpu: 500m, memory: 512Mi }
+            limits: { memory: 1536Mi }
+          securityContext: *hardened
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+            - { name: shm, mountPath: /dev/shm }
+      volumes:
+        - { name: tmp, emptyDir: {} }
+        - { name: shm, emptyDir: { medium: Memory, sizeLimit: 512Mi } }

@@ -1,0 +1,13 @@
+# The site's smoke suite against staging (site repo e2e/). It runs in auth-staging, not site-staging: it creates a
+# test admin through Kratos' and Keto's admin APIs, which auth's NetworkPolicy opens only inside auth-staging.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: auth-staging
+labels:
+  - pairs:
+      bulbashenko.com/layer: app
+      bulbashenko.com/app: site
+      bulbashenko.com/env: staging
+    includeSelectors: false
+resources:
+  - flux.yaml

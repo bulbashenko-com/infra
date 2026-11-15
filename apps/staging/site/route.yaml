@@ -1,4 +1,6 @@
-# Staging site on bulbashenko.dev: mesh only, TLS from staging-wildcard (Traefik's default TLSStore).
+# Staging site on bulbashenko.dev: TLS from staging-wildcard (Traefik's default TLSStore). Open to the mesh and to the
+# pod network (staging-access), so in-cluster callers reach it through Traefik: the smoke suite (site-e2e) and the
+# SSO's redirects. The domain has no public DNS; nothing outside the mesh can resolve it.
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
@@ -8,6 +10,19 @@ spec:
   routes:
     - match: Host(`bulbashenko.dev`)
       middlewares:
-        - { name: mesh-only, namespace: kube-system }
+        - { name: staging-access }
       services: [{ name: site, port: 3000 }]
   tls: {}
+---
+# The mesh (as kube-system/mesh-only) plus the pod network; same as auth-staging's (bulbashenko-com/auth
+# deploy/staging/extras.yaml).
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: staging-access
+spec:
+  ipAllowList:
+    sourceRange:
+      - 100.64.0.0/10
+      - fd7a:115c:a1e0::/48
+      - 10.42.0.0/16

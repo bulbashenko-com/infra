@@ -40,7 +40,6 @@ spec:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             capabilities: { drop: [ALL] }
-      containers:
         - name: restore
           image: ghcr.io/cloudnative-pg/postgresql:17.7-standard-trixie
           command: ["/bin/sh", "/scripts/refresh.sh", "restore"]
@@ -49,6 +48,20 @@ spec:
           volumeMounts: *mounts
           resources:
             requests: { cpu: 10m, memory: 64Mi }
+          securityContext: *hardened
+      containers:
+        # Production's data comes with production's schema: bring it to the version staging runs (site repo
+        # scripts/migrate.mjs, the image of the Deployment's init container). HOME is /tmp, here the shared /work.
+        - name: migrate
+          image: ghcr.io/bulbashenko-com/site-migrate:latest
+          envFrom:
+            - secretRef: { name: site }
+          volumeMounts:
+            - { name: work, mountPath: /tmp }
+            - { name: internal-ca, mountPath: /etc/internal-ca, readOnly: true }
+          resources:
+            requests: { cpu: 20m, memory: 128Mi }
+            limits: { memory: 384Mi }
           securityContext: *hardened
       volumes:
         - name: scripts
@@ -104,7 +117,6 @@ spec:
                 allowPrivilegeEscalation: false
                 readOnlyRootFilesystem: true
                 capabilities: { drop: [ALL] }
-          containers:
             - name: restore
               image: ghcr.io/cloudnative-pg/postgresql:17.7-standard-trixie
               command: ["/bin/sh", "/scripts/refresh.sh", "restore"]
@@ -113,6 +125,20 @@ spec:
               volumeMounts: *mounts
               resources:
                 requests: { cpu: 10m, memory: 64Mi }
+              securityContext: *hardened
+          containers:
+            # Production's data comes with production's schema: bring it to the version staging runs (site repo
+            # scripts/migrate.mjs, the image of the Deployment's init container). HOME is /tmp, here the shared /work.
+            - name: migrate
+              image: ghcr.io/bulbashenko-com/site-migrate:latest
+              envFrom:
+                - secretRef: { name: site }
+              volumeMounts:
+                - { name: work, mountPath: /tmp }
+                - { name: internal-ca, mountPath: /etc/internal-ca, readOnly: true }
+              resources:
+                requests: { cpu: 20m, memory: 128Mi }
+                limits: { memory: 384Mi }
               securityContext: *hardened
           volumes:
             - name: scripts
