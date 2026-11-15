@@ -22,7 +22,7 @@ images:
   # The refresh migrates the restored data to staging's version; same commit as the site (apps/base/site), moved
   # together by scripts/promote.sh.
   - name: ghcr.io/bulbashenko-com/site-migrate
-    newTag: 0452787dfe6cd1379e790027d2bc804854772897
+    newTag: 391d1e1d14a15b8bbacb57bef39de08b34a00f30
 configMapGenerator:
   - name: site-env
     literals:
@@ -31,6 +31,9 @@ configMapGenerator:
       - SKULL_MANIFEST_URL=https://media.bulbashenko.dev/skull/current.json
       # Build-time NEXT_PUBLIC_* in the client bundle still say bulbashenko.com (one image for both).
       - NEXT_PUBLIC_SITE_URL=https://bulbashenko.dev
+      # Read at run time by the sign-in flow: the callback URL staging sends to its SSO (NEXT_PUBLIC_* is fixed at
+      # build time and says bulbashenko.com).
+      - SITE_URL=https://bulbashenko.dev
       - OIDC_ISSUER=https://auth.bulbashenko.dev
   - name: staging-refresh
     files:
