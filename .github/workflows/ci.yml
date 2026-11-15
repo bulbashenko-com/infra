@@ -57,6 +57,73 @@ jobs:
           python3 -m scripts.dashboards infrastructure/configs/monitoring/dashboards
           git diff --exit-code -- infrastructure/configs/monitoring/dashboards || {
             echo "::error::regenerate: python3 -m scripts.dashboards infrastructure/configs/monitoring/dashboards"; exit 1; }
+  # Every manifest against its schema (Kubernetes and the CRDs we use), so a wrong field fails here, not in Flux.
+  kubeconform:
+    name: kubeconform
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install kubeconform
+        run: curl -fsSL https://github.com/yannh/kubeconform/releases/download/v0.8.0/kubeconform-linux-amd64.tar.gz | tar -xz kubeconform
+      - name: Validate every overlay Flux reconciles
+        run: |
+          set -euo pipefail
+          # SOPS-encrypted Secrets carry a `sops` block Kubernetes never sees (Flux decrypts first): skipped.
+          for d in $(git ls-files '*kustomization.yaml' | xargs -n1 dirname | sort -u); do
+            grep -q '^kind: Component' "$d/kustomization.yaml" && continue
+            echo "== $d"
+            kubectl kustomize "$d" | ./kubeconform -strict -summary -skip Secret -ignore-missing-schemas \
+              -schema-location default \
+              -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
+          done
+
+  # Renders the whole cluster as Flux would (Kustomizations, HelmReleases with their charts, other repos' sources)
+  # without a cluster. `flate test` fails on anything that would not render; on pull requests the difference
+  # against the base branch is posted as the comment «Что изменится в кластере». flate is flux-local's successor.
+  render:
+    name: render
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: home-operations/flate/action@v0.6.5
+      - name: Render
+        # The action sets FLATE_BASE (change-aware mode); render everything instead.
+        run: |
+          unset FLATE_BASE
+          flate test all --path .
+      - name: Diff for the pull request
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE: ${{ github.base_ref }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          set +e -uo pipefail
+          unset FLATE_BASE
+          git worktree add -q ../baseline "origin/$BASE" || exit 1
+          diff=$(flate diff all --path . --path-orig ../baseline -o github 2>diff.err)
+          rc=$?
+          {
+            echo "<!-- flate-diff -->"
+            echo "### Что изменится в кластере (\`$BASE\` → этот PR)"
+            echo
+            if [ -n "$diff" ]; then
+              echo "$diff" | head -c 60000
+            else
+              echo "Ничего: отрисованные манифесты не меняются."
+            fi
+            if [ "$rc" -ne 0 ]; then echo; echo "> [!WARNING]"; echo "> flate не смог отрисовать часть объектов, подробности в логе job \`render\`."; fi
+          } > comment.md
+          cat diff.err >&2
+          id=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --paginate -q '.[] | select(.body | startswith("<!-- flate-diff -->")) | .id' | head -1)
+          if [ -n "$id" ]; then gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -F body=@comment.md >/dev/null
+          else gh pr comment "$PR" --body-file comment.md >/dev/null; fi
+          exit $rc
 
   yaml:
     name: yaml
