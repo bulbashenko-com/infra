@@ -1,0 +1,44 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Update policy for every repository of bulbashenko-com (infra docs/workflow.md, «Зависимости»). Repos extend it with github>bulbashenko-com/infra:renovate-preset.",
+  "extends": ["config:recommended", ":dependencyDashboard", ":semanticCommitsDisabled", ":timezone(Europe/Bratislava)"],
+  "labels": ["dependencies"],
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 0,
+  "minimumReleaseAge": "3 days",
+  "platformAutomerge": true,
+  "automergeType": "pr",
+  "automergeStrategy": "merge-commit",
+  "vulnerabilityAlerts": {
+    "description": "Fixes for known vulnerabilities: their own PR, labelled security (a release of only these merges itself, docs/workflow.md), merged as soon as CI is green.",
+    "enabled": true,
+    "labels": ["dependencies", "security"],
+    "automerge": true,
+    "schedule": ["at any time"],
+    "minimumReleaseAge": null
+  },
+  "osvVulnerabilityAlerts": true,
+  "packageRules": [
+    {
+      "description": "Patch, minor, digest and pin updates: one PR that merges itself when CI is green. It lands on staging; production gets it with the next release.",
+      "matchUpdateTypes": ["minor", "patch", "pin", "pinDigest", "digest"],
+      "groupName": "non-major",
+      "automerge": true
+    },
+    {
+      "description": "0.x versions may break on a minor bump: treated as majors.",
+      "matchCurrentVersion": "/^0\\./",
+      "matchUpdateTypes": ["minor"],
+      "groupName": "major updates",
+      "addLabels": ["major"],
+      "automerge": false
+    },
+    {
+      "description": "Major updates: all of them in one PR, kept current in place (a newer version replaces the older one in the same PR). Merged by hand, when convenient.",
+      "matchUpdateTypes": ["major"],
+      "groupName": "major updates",
+      "addLabels": ["major"],
+      "automerge": false
+    }
+  ]
+}
