@@ -6,4 +6,4 @@ images:
   # The one pin for both environments, changed by scripts/promote.sh on dev: staging runs it at once,
   # production with the next release (dev -> main).
   - name: ghcr.io/bulbashenko-com/site
-    newTag: 5af8c6dfcc169bf19cede421bc57e63272df972b
+    newTag: f1476f286542957d135fb606ff80cad840359fbe
