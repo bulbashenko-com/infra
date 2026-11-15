@@ -1,6 +1,7 @@
 # Our alerts: what the upstream rules (synced by the chart) do not cover and what breaks quietly. Memory, disks,
-# crash loops, failed Jobs, PVCs and down targets are already alerted upstream. Thresholds match the "Главное"
-# dashboard. severity: critical = act now, warning = look today. Telegram routing is infra#75.
+# crash loops, failed Jobs, PVCs and down targets are already alerted upstream. Thresholds match the dashboards.
+# severity: critical = act now, warning = look today; both go to Telegram (stack.yaml, alertmanager). Flux failures
+# arrive as events right away (flux-alerts.yaml); the rules below are the backstop for what produces no event.
 apiVersion: operator.victoriametrics.com/v1beta1
 kind: VMRule
 metadata:
@@ -144,8 +145,27 @@ spec:
             description: "Контейнер упёрся в memory limit и был перезапущен. Подними limit или найди утечку."
         - alert: FluxResourceNotReady
           expr: flux_resource_info{ready="False", suspended!="True"} == 1
-          for: 15m
+          for: 30m
           labels: { severity: warning }
           annotations:
-            summary: "Flux: {{ $labels.kind }} {{ $labels.exported_namespace }}/{{ $labels.name }} не Ready"
-            description: "Изменение из git не применилось 15 минут. flux.int.bulbashenko.com или flux get all -A."
+            summary: "Flux: {{ $labels.kind }} {{ $labels.exported_namespace }}/{{ $labels.name }} не Ready 30 минут"
+            description: "Причина: {{ $labels.reason }}. Подробности на дашборде «Выкатка» и в логах flux-system."
+
+    # A release (a new commit on main) that has not fully rolled out: some Kustomization read from main is still on an
+    # older commit, or is not ready. A failure usually arrives earlier as a Flux event; this also catches a rollout
+    # that hangs without failing (waiting on a dependency, a stuck health check).
+    - name: bulbashenko.releases
+      rules:
+        - alert: ReleaseStuck
+          expr: |
+            (
+              flux_resource_info{kind="Kustomization", exported_namespace="flux-system", source_name="flux-system"}
+                unless on (revision)
+              flux_resource_info{kind="GitRepository", exported_namespace="flux-system", name="flux-system"}
+            )
+            or flux_resource_info{kind="Kustomization", exported_namespace="flux-system", source_name="flux-system", ready!="True", suspended!="True"}
+          for: 20m
+          labels: { severity: warning }
+          annotations:
+            summary: "Релиз не выкатился за 20 минут: {{ $labels.name }}"
+            description: "Kustomization {{ $labels.name }} на {{ $labels.revision }}, состояние {{ $labels.reason }}. Смотри дашборд «Выкатка»; если релиз сломал прод, откати его (docs/workflow.md, «Откат»)."
