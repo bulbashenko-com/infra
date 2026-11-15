@@ -1,13 +1,14 @@
 """Релизы: what runs where, what waits for the next release, what was released when."""
-from .lib import ORG, Dashboard, nav, release_markers, steps
+from .lib import GITHUB, ORG, SHA_FROM_IMAGE, SHA_FROM_REVISION, Dashboard, nav, release_markers, steps
 
-SHORT = '"version", "$1", "{src}", "{regex}"'
-
-
-def labelled(expr, app, env, src, regex):
-    # Adds app/env labels and a short `version` (7 characters of a SHA, or a chart version).
-    return (f'label_replace(label_replace(label_replace({expr}, "version", "$1", "{src}", "{regex}"), '
-            f'"app", "{app}", "", ""), "env", "{env}", "", "")')
+def labelled(expr, app, repo, env, src, regex, sha_regex=None):
+    # Adds app/env/repo labels, a short `version` (7 characters of a SHA, or a chart version) and the full `sha`
+    # (for the link to the commit).
+    out = (f'label_replace(label_replace(label_replace(label_replace({expr}, "version", "$1", "{src}", "{regex}"), '
+           f'"app", "{app}", "", ""), "env", "{env}", "", ""), "repo", "{repo}", "", "")')
+    if sha_regex:
+        out = f'label_replace({out}, "sha", "$1", "{src}", "{sha_regex}")'
+    return out
 
 
 def flux(kind, ns, name, metric="max by (revision)"):
@@ -20,17 +21,20 @@ def image(ns):
 
 SHA = ".*sha1:([0-9a-f]{7}).*"
 TAG = ".*:([0-9a-f]{7})[0-9a-f]*$"
-VERSIONS = " or ".join([
-    labelled(image("site"), "Сайт", "prod", "image", TAG),
-    labelled(image("site-staging"), "Сайт", "staging", "image", TAG),
-    labelled(flux("Kustomization", "flux-system", "auth"), "Вход (SSO)", "prod", "revision", SHA),
-    labelled(flux("Kustomization", "auth-staging", "auth"), "Вход (SSO)", "staging", "revision", SHA),
-    labelled(flux("Kustomization", "flux-system", "mail"), "Почта", "prod", "revision", SHA),
-    labelled(flux("Kustomization", "flux-system", "teamspeak"), "TeamSpeak", "prod", "revision", SHA),
-    labelled(flux("HelmRelease", "nextcloud", "nextcloud"), "Облако", "prod", "revision", "(.*)"),
-    labelled(flux("GitRepository", "flux-system", "flux-system"), "Конфиг кластера (infra)", "prod", "revision", SHA),
-    labelled(flux("GitRepository", "flux-system", "infra-dev"), "Конфиг кластера (infra)", "staging", "revision", SHA),
-])
+VERSIONS = "max by (app, env, version, repo, sha) (" + " or ".join([
+    labelled(image("site"), "Сайт", "site", "прод", "image", TAG, SHA_FROM_IMAGE),
+    labelled(image("site-staging"), "Сайт", "site", "staging", "image", TAG, SHA_FROM_IMAGE),
+    labelled(flux("Kustomization", "flux-system", "auth"), "Вход (SSO)", "auth", "прод", "revision", SHA, SHA_FROM_REVISION),
+    labelled(flux("Kustomization", "auth-staging", "auth"), "Вход (SSO)", "auth", "staging", "revision", SHA, SHA_FROM_REVISION),
+    labelled(flux("Kustomization", "flux-system", "mail"), "Почта", "mail", "прод", "revision", SHA, SHA_FROM_REVISION),
+    labelled(flux("Kustomization", "flux-system", "teamspeak"), "TeamSpeak", "teamspeak", "прод", "revision", SHA,
+             SHA_FROM_REVISION),
+    labelled(flux("HelmRelease", "nextcloud", "nextcloud"), "Облако (версия чарта)", "", "прод", "revision", "(.*)"),
+    labelled(flux("GitRepository", "flux-system", "flux-system"), "Конфиг кластера (infra)", "infra", "прод", "revision",
+             SHA, SHA_FROM_REVISION),
+    labelled(flux("GitRepository", "flux-system", "infra-dev"), "Конфиг кластера (infra)", "infra", "staging", "revision",
+             SHA, SHA_FROM_REVISION),
+]) + ")"
 
 # Apps whose staging runs something production does not yet: what the next release will bring.
 WAITING = ('(count(max by (image) (kube_pod_container_info{namespace="site-staging", container="site"}) '
@@ -53,13 +57,13 @@ def build():
                "иначе их принесёт следующий релиз.", w=6, h=8,
                thresholds=steps((None, "green"), (1, "blue"))),
         d.table("Версии: прод и staging", VERSIONS,
-                "Короткий коммит (или версия чарта), который сейчас работает. Разные значения в строке — на staging "
-                "уже новая версия, в прод она попадёт с релизом. У конфига кластера коммиты всегда разные (у main "
-                "свои merge-коммиты), это нормально.", w=18, h=8,
-                columns={"app": "Что", "prod": "Прод", "staging": "Staging"},
-                transformations=[{"id": "groupingToMatrix", "options": {
-                    "columnField": "env", "rowField": "app", "valueField": "version", "emptyValue": "empty"}},
-                    {"id": "organize", "options": {"renameByName": {"app\\env": "app"}}}]),
+                "Короткий коммит (или версия чарта), который сейчас работает. У одного приложения разные коммиты в "
+                "проде и на staging — на staging уже новая версия, в прод она попадёт с релизом. У конфига кластера "
+                "коммиты всегда разные (у main свои merge-коммиты), это нормально. Клик по версии — коммит в GitHub.",
+                w=18, h=8, sort="Что",
+                columns={"app": "Что", "env": "Где", "version": "Версия", "repo": "repo", "sha": "sha"},
+                links={"Версия": ("Открыть коммит в GitHub", GITHUB + "/${__data.fields.repo}/commit/${__data.fields.sha}")},
+                hidden=("repo", "sha")),
     )
     d.line(
         d.github("Открытый релиз", "PR «Release» dev → main: что войдёт в прод. Пусто — всё уже в проде. "

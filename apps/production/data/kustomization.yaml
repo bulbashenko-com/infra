@@ -27,7 +27,6 @@ resources:
   - garage.yaml
   - garage-ha-secret.sops.yaml
   - garage-ha.yaml
-  - routes.yaml
   - backup.yaml
   - backup-initial.yaml
   - scrapes.yaml

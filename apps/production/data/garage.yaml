@@ -1,4 +1,4 @@
-# The name every client uses (site, CNPG, off-site, volume backups, Traefik routes). Points at the
+# The name every client uses (CNPG, off-site, volume backups, Nextcloud's Backups folder). Points at the
 # replicated garage-ha (garage-ha.yaml).
 apiVersion: v1
 kind: Service

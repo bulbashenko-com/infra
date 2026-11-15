@@ -70,9 +70,12 @@ class Dashboard:
         return p
 
     def stat(self, title, expr, desc, w=4, h=4, unit="none", thresholds=None, mappings=None, decimals=None,
-             text="value", legend=None):
+             text="value", legend=None, link=None):
         defaults = {"unit": unit, "thresholds": thresholds or steps((None, "green"), (1, "red")),
                     "color": {"mode": "thresholds"}, "mappings": mappings or []}
+        if link:
+            # (title, url): clicking the value opens it; ${__field.labels.<name>} reads the series' labels.
+            defaults["links"] = [{"title": link[0], "url": link[1], "targetBlank": True}]
         if decimals is not None:
             defaults["decimals"] = decimals
         target = {"refId": "A", "datasource": VM, "expr": expr, "instant": True}
@@ -103,7 +106,7 @@ class Dashboard:
                                     "tooltip": {"mode": "multi", "sort": "desc"}})
 
     def table(self, title, expr, desc, w=24, h=8, columns=None, mappings=None, overrides=None, sort=None,
-              transformations=None, unit="none"):
+              transformations=None, unit="none", links=None, hidden=()):
         """Instant query as a table. columns: {label: header}, in order; other labels are hidden."""
         organize = {"excludeByName": {"Time": True, "Value": True, "__name__": True}}
         if columns:
@@ -113,9 +116,19 @@ class Dashboard:
         defaults = {"unit": unit, "custom": {"cellOptions": {"type": "color-text"}, "align": "left"}}
         if mappings:
             defaults["mappings"] = mappings
+        overrides = list(overrides or [])
+        # links: {header: (title, url)}; the url may read other columns of the row: ${__data.fields.<header>}.
+        for header, (link_title, url) in (links or {}).items():
+            overrides.append({"matcher": {"id": "byName", "options": header},
+                              "properties": [{"id": "links", "value": [{"title": link_title, "url": url,
+                                                                         "targetBlank": True}]}]})
+        # Columns a link needs but nobody needs to read.
+        for header in hidden:
+            overrides.append({"matcher": {"id": "byName", "options": header},
+                              "properties": [{"id": "custom.hidden", "value": True}]})
         return self._panel("table", title, desc, w, h, VM,
                            [{"refId": "A", "datasource": VM, "expr": expr, "instant": True, "format": "table"}],
-                           fieldConfig={"defaults": defaults, "overrides": overrides or []},
+                           fieldConfig={"defaults": defaults, "overrides": overrides},
                            options={"showHeader": True, "cellHeight": "sm",
                                     "sortBy": [{"displayName": sort, "desc": False}] if sort else []},
                            transformations=(transformations or []) + [{"id": "organize", "options": organize}])
@@ -216,3 +229,15 @@ RELEASE_MARKER = ('max by (revision) (flux_resource_info{kind="GitRepository", e
 
 def release_markers(d):
     d.annotation("Релиз", RELEASE_MARKER, "Релиз", "main → {{revision}}", "green")
+
+
+GITHUB = f"https://github.com/{ORG}"
+# Full commit SHA of a Flux revision ("refs/heads/main@sha1:<sha>", "sha1:<sha>") or of an image tag (":<sha>").
+SHA_FROM_REVISION = ".*sha1:([0-9a-f]{40}).*"
+SHA_FROM_IMAGE = ".*:([0-9a-f]{40})$"
+
+
+def with_repo(expr):
+    """Adds `repo`: the GitHub repository a Flux object's revision belongs to (from its source)."""
+    return ('label_replace(label_replace(' + expr + ', "repo", "infra", "source_name", "flux-system|infra-dev"), '
+            '"repo", "$1", "source_name", "(auth|mail|teamspeak)")')

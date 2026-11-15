@@ -141,7 +141,7 @@
    "id": 4,
    "type": "stat",
    "title": "В проде коммит",
-   "description": "Коммит main, который Flux получил последним. Совпадает с merge-коммитом релиза — значит, Flux релиз увидел.",
+   "description": "Коммит main, который Flux получил последним. Совпадает с merge-коммитом релиза — значит, Flux релиз увидел. Клик — коммит в GitHub.",
    "datasource": {
     "type": "prometheus",
     "uid": "VictoriaMetrics"
@@ -153,7 +153,7 @@
       "type": "prometheus",
       "uid": "VictoriaMetrics"
      },
-     "expr": "label_replace(flux_resource_info{kind=\"GitRepository\", exported_namespace=\"flux-system\", name=\"flux-system\"}, \"short\", \"$1\", \"revision\", \".*sha1:([0-9a-f]{7}).*\")",
+     "expr": "label_replace(label_replace(flux_resource_info{kind=\"GitRepository\", exported_namespace=\"flux-system\", name=\"flux-system\"}, \"short\", \"$1\", \"revision\", \".*sha1:([0-9a-f]{7}).*\"), \"sha\", \"$1\", \"revision\", \".*sha1:([0-9a-f]{40}).*\")",
      "instant": true,
      "legendFormat": "{{short}}"
     }
@@ -173,7 +173,14 @@
      "color": {
       "mode": "thresholds"
      },
-     "mappings": []
+     "mappings": [],
+     "links": [
+      {
+       "title": "Открыть коммит в GitHub",
+       "url": "https://github.com/bulbashenko-com/infra/commit/${__field.labels.sha}",
+       "targetBlank": true
+      }
+     ]
     },
     "overrides": []
    },
@@ -199,7 +206,7 @@
    "id": 5,
    "type": "stat",
    "title": "На staging коммит",
-   "description": "Коммит dev, который Flux получил последним (staging). Меняется при каждом пине приложения и каждом PR в dev.",
+   "description": "Коммит dev, который Flux получил последним (staging). Меняется при каждом пине приложения и каждом PR в dev. Клик — коммит в GitHub.",
    "datasource": {
     "type": "prometheus",
     "uid": "VictoriaMetrics"
@@ -211,7 +218,7 @@
       "type": "prometheus",
       "uid": "VictoriaMetrics"
      },
-     "expr": "label_replace(flux_resource_info{kind=\"GitRepository\", exported_namespace=\"flux-system\", name=\"infra-dev\"}, \"short\", \"$1\", \"revision\", \".*sha1:([0-9a-f]{7}).*\")",
+     "expr": "label_replace(label_replace(flux_resource_info{kind=\"GitRepository\", exported_namespace=\"flux-system\", name=\"infra-dev\"}, \"short\", \"$1\", \"revision\", \".*sha1:([0-9a-f]{7}).*\"), \"sha\", \"$1\", \"revision\", \".*sha1:([0-9a-f]{40}).*\")",
      "instant": true,
      "legendFormat": "{{short}}"
     }
@@ -231,7 +238,14 @@
      "color": {
       "mode": "thresholds"
      },
-     "mappings": []
+     "mappings": [],
+     "links": [
+      {
+       "title": "Открыть коммит в GitHub",
+       "url": "https://github.com/bulbashenko-com/infra/commit/${__field.labels.sha}",
+       "targetBlank": true
+      }
+     ]
     },
     "overrides": []
    },
@@ -314,7 +328,7 @@
    "id": 7,
    "type": "table",
    "title": "Части кластера (Flux)",
-   "description": "Каждая строка — часть кластера, которую Flux применяет отдельно. «Да» — применено и здорово; «идёт» — применяется; «нет» — ошибка, причина в колонке «Почему» (подробно — в Telegram и «Логи», namespace flux-system).",
+   "description": "Каждая строка — часть кластера, которую Flux применяет отдельно. «Да» — применено и здорово; «идёт» — применяется; «нет» — ошибка, причина в колонке «Почему» (подробно — в Telegram и «Логи», namespace flux-system). Клик по версии — коммит в GitHub (у Helm-чартов это версия чарта, без ссылки).",
    "datasource": {
     "type": "prometheus",
     "uid": "VictoriaMetrics"
@@ -326,7 +340,7 @@
       "type": "prometheus",
       "uid": "VictoriaMetrics"
      },
-     "expr": "max by (exported_namespace, kind, name, ready, reason, short) (label_replace(flux_resource_info{kind=~\"Kustomization|HelmRelease\"}, \"short\", \"$1\", \"revision\", \"(?:.*sha1:)?([0-9a-f]{7}|[^@]*)[0-9a-f]*$\"))",
+     "expr": "max by (exported_namespace, kind, name, ready, reason, short, sha, repo) (label_replace(label_replace(label_replace(label_replace(flux_resource_info{kind=~\"Kustomization|HelmRelease\"}, \"repo\", \"infra\", \"source_name\", \"flux-system|infra-dev\"), \"repo\", \"$1\", \"source_name\", \"(auth|mail|teamspeak)\"), \"short\", \"$1\", \"revision\", \"(?:.*sha1:)?([0-9a-f]{7}|[^@]*)[0-9a-f]*$\"), \"sha\", \"$1\", \"revision\", \".*sha1:([0-9a-f]{40}).*\"))",
      "instant": true,
      "format": "table"
     }
@@ -363,7 +377,50 @@
       }
      ]
     },
-    "overrides": []
+    "overrides": [
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "Версия"
+      },
+      "properties": [
+       {
+        "id": "links",
+        "value": [
+         {
+          "title": "Открыть коммит в GitHub",
+          "url": "https://github.com/bulbashenko-com/${__data.fields.repo}/commit/${__data.fields.sha}",
+          "targetBlank": true
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "repo"
+      },
+      "properties": [
+       {
+        "id": "custom.hidden",
+        "value": true
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "sha"
+      },
+      "properties": [
+       {
+        "id": "custom.hidden",
+        "value": true
+       }
+      ]
+     }
+    ]
    },
    "options": {
     "showHeader": true,
@@ -385,7 +442,9 @@
        "kind": true,
        "ready": true,
        "reason": true,
-       "short": true
+       "short": true,
+       "repo": true,
+       "sha": true
       },
       "indexByName": {
        "exported_namespace": 0,
@@ -393,7 +452,9 @@
        "kind": 2,
        "ready": 3,
        "reason": 4,
-       "short": 5
+       "short": 5,
+       "repo": 6,
+       "sha": 7
       },
       "renameByName": {
        "exported_namespace": "Где",
@@ -401,7 +462,9 @@
        "kind": "Тип",
        "ready": "Готово",
        "reason": "Почему",
-       "short": "Версия"
+       "short": "Версия",
+       "repo": "repo",
+       "sha": "sha"
       }
      }
     }
@@ -555,7 +618,7 @@
       "type": "prometheus",
       "uid": "VictoriaMetrics"
      },
-     "expr": "max by (name, ready, reason, short) (label_replace(flux_resource_info{kind=\"Kustomization\", exported_namespace=\"auth-staging\", name=~\".*-e2e\"}, \"short\", \"$1\", \"revision\", \".*sha1:([0-9a-f]{7}).*\"))",
+     "expr": "max by (name, ready, reason, short, sha) (label_replace(label_replace(flux_resource_info{kind=\"Kustomization\", exported_namespace=\"auth-staging\", name=~\".*-e2e\"}, \"short\", \"$1\", \"revision\", \".*sha1:([0-9a-f]{7}).*\"), \"sha\", \"$1\", \"revision\", \".*sha1:([0-9a-f]{40}).*\"))",
      "instant": true,
      "format": "table"
     }
@@ -592,7 +655,38 @@
       }
      ]
     },
-    "overrides": []
+    "overrides": [
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "Коммит dev"
+      },
+      "properties": [
+       {
+        "id": "links",
+        "value": [
+         {
+          "title": "Открыть коммит в GitHub",
+          "url": "https://github.com/bulbashenko-com/infra/commit/${__data.fields.sha}",
+          "targetBlank": true
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "sha"
+      },
+      "properties": [
+       {
+        "id": "custom.hidden",
+        "value": true
+       }
+      ]
+     }
+    ]
    },
    "options": {
     "showHeader": true,
@@ -607,19 +701,22 @@
        "name": true,
        "ready": true,
        "reason": true,
-       "short": true
+       "short": true,
+       "sha": true
       },
       "indexByName": {
        "name": 0,
        "ready": 1,
        "reason": 2,
-       "short": 3
+       "short": 3,
+       "sha": 4
       },
       "renameByName": {
        "name": "Проверка",
        "ready": "Прошла",
        "reason": "Почему",
-       "short": "Коммит dev"
+       "short": "Коммит dev",
+       "sha": "sha"
       }
      }
     }

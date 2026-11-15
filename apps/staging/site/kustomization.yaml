@@ -1,5 +1,5 @@
 # The site in staging: same base and pin as production (apps/base/site), staging URLs, its own database
-# (bulbashenko_staging), bucket (media-staging) and Secret. Content comes from the refresh (refresh.sh); the smoke
+# (bulbashenko_staging) and Secret. No Nextcloud here, so gallery and files stay empty. Content comes from the refresh (refresh.sh); the smoke
 # suite that gates the release is ../site-e2e.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
@@ -22,13 +22,10 @@ images:
   # The refresh migrates the restored data to staging's version; same commit as the site (apps/base/site), moved
   # together by scripts/promote.sh.
   - name: ghcr.io/bulbashenko-com/site-migrate
-    newTag: 391d1e1d14a15b8bbacb57bef39de08b34a00f30
+    newTag: b3eb1be64ee078b087881e5dca20793e018ff374
 configMapGenerator:
   - name: site-env
     literals:
-      - S3_BUCKET=media-staging
-      - MEDIA_PUBLIC_URL=https://media.bulbashenko.dev
-      - SKULL_MANIFEST_URL=https://media.bulbashenko.dev/skull/current.json
       # Build-time NEXT_PUBLIC_* in the client bundle still say bulbashenko.com (one image for both).
       - NEXT_PUBLIC_SITE_URL=https://bulbashenko.dev
       # Read at run time by the sign-in flow: the callback URL staging sends to its SSO (NEXT_PUBLIC_* is fixed at
@@ -47,4 +44,4 @@ patches:
     patch: |
       - op: add
         path: /spec/template/metadata/annotations
-        value: { bulbashenko.com/secret-revision: "1" }
+        value: { bulbashenko.com/secret-revision: "2" }

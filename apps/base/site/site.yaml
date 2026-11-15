@@ -1,5 +1,5 @@
 # bulbashenko.com (Next.js standalone), shared by production (apps/production/site) and staging (apps/staging/site).
-# What differs per environment comes from the overlay: the Secret `site`, the ConfigMap `site-env` (URLs, bucket),
+# What differs per environment comes from the overlay: the Secret `site`, the ConfigMap `site-env` (URLs, Nextcloud),
 # the route, and the secret-revision annotation.
 apiVersion: apps/v1
 kind: Deployment
@@ -44,7 +44,6 @@ spec:
             - secretRef: { name: site }
             - configMapRef: { name: site-env }
           env:
-            - { name: S3_ENDPOINT, value: "http://garage.data.svc.cluster.local:3900" }
             - { name: OIDC_CLIENT_ID, value: bulbashenko-site }
           ports:
             - { name: http, containerPort: 3000 }
