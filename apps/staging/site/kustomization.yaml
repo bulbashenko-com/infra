@@ -1,5 +1,6 @@
 # The site in staging: same base and pin as production (apps/base/site), staging URLs, its own database
-# (bulbashenko_staging), bucket (media-staging) and Secret. Content comes from the refresh (refresh.sh).
+# (bulbashenko_staging), bucket (media-staging) and Secret. Content comes from the refresh (refresh.sh); the smoke
+# suite that gates the release is ../site-e2e.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: site-staging
@@ -17,6 +18,11 @@ resources:
   - ../../base/site
   - route.yaml
   - refresh.yaml
+images:
+  # The refresh migrates the restored data to staging's version; same commit as the site (apps/base/site), moved
+  # together by scripts/promote.sh.
+  - name: ghcr.io/bulbashenko-com/site-migrate
+    newTag: 0452787dfe6cd1379e790027d2bc804854772897
 configMapGenerator:
   - name: site-env
     literals:

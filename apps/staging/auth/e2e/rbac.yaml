@@ -1,0 +1,22 @@
+# The e2e Job's wait reads the stack's Flux Kustomization (which revision is applied, is it ready); nothing else.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: e2e
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: e2e
+rules:
+  - apiGroups: [kustomize.toolkit.fluxcd.io]
+    resources: [kustomizations]
+    verbs: [get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: e2e
+roleRef: { apiGroup: rbac.authorization.k8s.io, kind: Role, name: e2e }
+subjects:
+  - { kind: ServiceAccount, name: e2e }

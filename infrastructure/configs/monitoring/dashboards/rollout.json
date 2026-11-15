@@ -1,0 +1,821 @@
+{
+ "uid": "rollout",
+ "title": "Выкатка",
+ "description": "Что меняется в кластере сейчас. После merge релиза: Flux за минуту замечает новый коммит main, применяет его по частям (Kustomization), Kubernetes заменяет поды. Обычно 2–5 минут.",
+ "tags": [
+  "bulbashenko"
+ ],
+ "timezone": "browser",
+ "schemaVersion": 39,
+ "refresh": "30s",
+ "editable": true,
+ "graphTooltip": 1,
+ "time": {
+  "from": "now-6h",
+  "to": "now"
+ },
+ "links": [
+  {
+   "title": "Здоровье",
+   "url": "/d/health",
+   "type": "link",
+   "targetBlank": false,
+   "icon": "dashboard"
+  },
+  {
+   "title": "Релизы",
+   "url": "/d/releases",
+   "type": "link",
+   "targetBlank": false,
+   "icon": "dashboard"
+  },
+  {
+   "title": "Логи",
+   "url": "/d/logs",
+   "type": "link",
+   "targetBlank": false,
+   "icon": "dashboard"
+  }
+ ],
+ "panels": [
+  {
+   "id": 2,
+   "type": "row",
+   "title": "Сейчас",
+   "collapsed": false,
+   "gridPos": {
+    "x": 0,
+    "y": 0,
+    "w": 24,
+    "h": 1
+   },
+   "panels": []
+  },
+  {
+   "id": 3,
+   "type": "stat",
+   "title": "Состояние",
+   "description": "Готово — всё из git применено и все поды новые. Идёт — Flux применяет или поды заменяются (нормально 2–5 минут после релиза или пина на staging). Ошибка — что-то не применилось: таблица ниже и Telegram.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "VictoriaMetrics"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "VictoriaMetrics"
+     },
+     "expr": "((count(flux_resource_info{kind=~\"Kustomization|HelmRelease\", ready=\"False\", suspended!=\"True\", reason!=\"DependencyNotReady\"}) or vector(0)) > bool 0) * 2 + ((count(flux_resource_info{kind=~\"Kustomization|HelmRelease\", ready=\"False\", suspended!=\"True\", reason!=\"DependencyNotReady\"}) or vector(0)) == bool 0) * (((count(flux_resource_info{kind=\"Kustomization\", exported_namespace=\"flux-system\", source_name=\"flux-system\"} unless on (revision) flux_resource_info{kind=\"GitRepository\", exported_namespace=\"flux-system\", name=\"flux-system\"}) or vector(0)) + (count(flux_resource_info{kind=~\"Kustomization|HelmRelease\", ready=\"Unknown\"}) or vector(0)) + (count(flux_resource_info{kind=~\"Kustomization|HelmRelease\", reason=\"DependencyNotReady\"}) or vector(0)) + (count(kube_deployment_status_replicas_updated < kube_deployment_spec_replicas) or vector(0)) + (count(kube_statefulset_status_replicas_updated < kube_statefulset_replicas) or vector(0))) > bool 0)",
+     "instant": true
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "none",
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       },
+       {
+        "color": "blue",
+        "value": 1
+       },
+       {
+        "color": "red",
+        "value": 2
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "mappings": [
+      {
+       "type": "value",
+       "options": {
+        "0": {
+         "text": "Готово",
+         "color": "green",
+         "index": 0
+        },
+        "1": {
+         "text": "Идёт",
+         "color": "blue",
+         "index": 1
+        },
+        "2": {
+         "text": "Ошибка",
+         "color": "red",
+         "index": 2
+        }
+       }
+      }
+     ]
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ]
+    },
+    "colorMode": "background",
+    "graphMode": "none",
+    "textMode": "value",
+    "justifyMode": "center"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 1,
+    "w": 8,
+    "h": 6
+   }
+  },
+  {
+   "id": 4,
+   "type": "stat",
+   "title": "В проде коммит",
+   "description": "Коммит main, который Flux получил последним. Совпадает с merge-коммитом релиза — значит, Flux релиз увидел.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "VictoriaMetrics"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "VictoriaMetrics"
+     },
+     "expr": "label_replace(flux_resource_info{kind=\"GitRepository\", exported_namespace=\"flux-system\", name=\"flux-system\"}, \"short\", \"$1\", \"revision\", \".*sha1:([0-9a-f]{7}).*\")",
+     "instant": true,
+     "legendFormat": "{{short}}"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "none",
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "blue",
+        "value": null
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "mappings": []
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ]
+    },
+    "colorMode": "background",
+    "graphMode": "none",
+    "textMode": "name",
+    "justifyMode": "center"
+   },
+   "gridPos": {
+    "x": 8,
+    "y": 1,
+    "w": 5,
+    "h": 6
+   }
+  },
+  {
+   "id": 5,
+   "type": "stat",
+   "title": "На staging коммит",
+   "description": "Коммит dev, который Flux получил последним (staging). Меняется при каждом пине приложения и каждом PR в dev.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "VictoriaMetrics"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "VictoriaMetrics"
+     },
+     "expr": "label_replace(flux_resource_info{kind=\"GitRepository\", exported_namespace=\"flux-system\", name=\"infra-dev\"}, \"short\", \"$1\", \"revision\", \".*sha1:([0-9a-f]{7}).*\")",
+     "instant": true,
+     "legendFormat": "{{short}}"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "none",
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "blue",
+        "value": null
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "mappings": []
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ]
+    },
+    "colorMode": "background",
+    "graphMode": "none",
+    "textMode": "name",
+    "justifyMode": "center"
+   },
+   "gridPos": {
+    "x": 13,
+    "y": 1,
+    "w": 5,
+    "h": 6
+   }
+  },
+  {
+   "id": 6,
+   "type": "stat",
+   "title": "Последняя замена подов, назад",
+   "description": "Сколько прошло с последней выкатки новой версии приложения (где угодно: прод или staging).",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "VictoriaMetrics"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "VictoriaMetrics"
+     },
+     "expr": "time() - max(kube_replicaset_created{namespace=~\"site|site-staging|auth|auth-staging|mail|teamspeak|nextcloud|headscale\"})",
+     "instant": true
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s",
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "blue",
+        "value": null
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "mappings": []
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ]
+    },
+    "colorMode": "background",
+    "graphMode": "none",
+    "textMode": "value",
+    "justifyMode": "center"
+   },
+   "gridPos": {
+    "x": 18,
+    "y": 1,
+    "w": 6,
+    "h": 6
+   }
+  },
+  {
+   "id": 7,
+   "type": "table",
+   "title": "Части кластера (Flux)",
+   "description": "Каждая строка — часть кластера, которую Flux применяет отдельно. «Да» — применено и здорово; «идёт» — применяется; «нет» — ошибка, причина в колонке «Почему» (подробно — в Telegram и «Логи», namespace flux-system).",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "VictoriaMetrics"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "VictoriaMetrics"
+     },
+     "expr": "max by (exported_namespace, kind, name, ready, reason, short) (label_replace(flux_resource_info{kind=~\"Kustomization|HelmRelease\"}, \"short\", \"$1\", \"revision\", \"(?:.*sha1:)?([0-9a-f]{7}|[^@]*)[0-9a-f]*$\"))",
+     "instant": true,
+     "format": "table"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "none",
+     "custom": {
+      "cellOptions": {
+       "type": "color-text"
+      },
+      "align": "left"
+     },
+     "mappings": [
+      {
+       "type": "value",
+       "options": {
+        "True": {
+         "text": "да",
+         "color": "green",
+         "index": 0
+        },
+        "False": {
+         "text": "нет",
+         "color": "red",
+         "index": 1
+        },
+        "Unknown": {
+         "text": "идёт",
+         "color": "blue",
+         "index": 2
+        }
+       }
+      }
+     ]
+    },
+    "overrides": []
+   },
+   "options": {
+    "showHeader": true,
+    "cellHeight": "sm",
+    "sortBy": [
+     {
+      "displayName": "Где",
+      "desc": false
+     }
+    ]
+   },
+   "transformations": [
+    {
+     "id": "organize",
+     "options": {
+      "includeByName": {
+       "exported_namespace": true,
+       "name": true,
+       "kind": true,
+       "ready": true,
+       "reason": true,
+       "short": true
+      },
+      "indexByName": {
+       "exported_namespace": 0,
+       "name": 1,
+       "kind": 2,
+       "ready": 3,
+       "reason": 4,
+       "short": 5
+      },
+      "renameByName": {
+       "exported_namespace": "Где",
+       "name": "Что",
+       "kind": "Тип",
+       "ready": "Готово",
+       "reason": "Почему",
+       "short": "Версия"
+      }
+     }
+    }
+   ],
+   "gridPos": {
+    "x": 0,
+    "y": 7,
+    "w": 24,
+    "h": 10
+   }
+  },
+  {
+   "id": 8,
+   "type": "bargauge",
+   "title": "Поды новой версии готовы",
+   "description": "Какая доля подов каждого приложения уже на новой версии. 100% — выкатка этого приложения закончена; застряло ниже — новый под не стартует (миграция, образ, падение): смотри «Логи».",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "VictoriaMetrics"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "VictoriaMetrics"
+     },
+     "expr": "clamp_max(min by (namespace, deployment) (kube_deployment_status_replicas_updated{namespace=~\"site|site-staging|auth|auth-staging|mail|teamspeak|nextcloud|headscale\"}) / max by (namespace, deployment) (kube_deployment_spec_replicas{namespace=~\"site|site-staging|auth|auth-staging|mail|teamspeak|nextcloud|headscale\"} > 0), 1)",
+     "legendFormat": "{{namespace}}/{{deployment}}",
+     "instant": true
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "percentunit",
+     "min": 0,
+     "max": 1,
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "orange",
+        "value": null
+       },
+       {
+        "color": "green",
+        "value": 1
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "orientation": "horizontal",
+    "displayMode": "basic",
+    "showUnfilled": true,
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ]
+    }
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 17,
+    "w": 12,
+    "h": 10
+   }
+  },
+  {
+   "id": 9,
+   "type": "timeseries",
+   "title": "Сколько Flux применяет (секунд)",
+   "description": "Среднее время одного применения части кластера. Пики во время релиза — нормально (ждёт, пока поды станут готовы). Постоянно высоко — что-то медленно стартует.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "VictoriaMetrics"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "VictoriaMetrics"
+     },
+     "expr": "sum by (name) (rate(gotk_reconcile_duration_seconds_sum{kind=\"Kustomization\"}[5m])) / sum by (name) (rate(gotk_reconcile_duration_seconds_count{kind=\"Kustomization\"}[5m])) > 0.5",
+     "legendFormat": "{{name}}"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s",
+     "custom": {
+      "stacking": {
+       "mode": "none"
+      },
+      "fillOpacity": 5,
+      "showPoints": "never",
+      "lineWidth": 2
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 17,
+    "w": 12,
+    "h": 10
+   }
+  },
+  {
+   "id": 10,
+   "type": "row",
+   "title": "Staging: проверки перед релизом",
+   "collapsed": false,
+   "gridPos": {
+    "x": 0,
+    "y": 27,
+    "w": 24,
+    "h": 1
+   },
+   "panels": []
+  },
+  {
+   "id": 11,
+   "type": "table",
+   "title": "e2e на staging",
+   "description": "Прогон e2e для текущей версии на staging: вход (auth-e2e) и сайт (site-e2e). «Да» — прошли, релиз можно мержить; «идёт» — тесты бегут (сайт ~3 мин, вход ~12); «нет» — упали: «Логи», namespace auth-staging.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "VictoriaMetrics"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "VictoriaMetrics"
+     },
+     "expr": "max by (name, ready, reason, short) (label_replace(flux_resource_info{kind=\"Kustomization\", exported_namespace=\"auth-staging\", name=~\".*-e2e\"}, \"short\", \"$1\", \"revision\", \".*sha1:([0-9a-f]{7}).*\"))",
+     "instant": true,
+     "format": "table"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "none",
+     "custom": {
+      "cellOptions": {
+       "type": "color-text"
+      },
+      "align": "left"
+     },
+     "mappings": [
+      {
+       "type": "value",
+       "options": {
+        "True": {
+         "text": "да",
+         "color": "green",
+         "index": 0
+        },
+        "False": {
+         "text": "нет",
+         "color": "red",
+         "index": 1
+        },
+        "Unknown": {
+         "text": "идёт",
+         "color": "blue",
+         "index": 2
+        }
+       }
+      }
+     ]
+    },
+    "overrides": []
+   },
+   "options": {
+    "showHeader": true,
+    "cellHeight": "sm",
+    "sortBy": []
+   },
+   "transformations": [
+    {
+     "id": "organize",
+     "options": {
+      "includeByName": {
+       "name": true,
+       "ready": true,
+       "reason": true,
+       "short": true
+      },
+      "indexByName": {
+       "name": 0,
+       "ready": 1,
+       "reason": 2,
+       "short": 3
+      },
+      "renameByName": {
+       "name": "Проверка",
+       "ready": "Прошла",
+       "reason": "Почему",
+       "short": "Коммит dev"
+      }
+     }
+    }
+   ],
+   "gridPos": {
+    "x": 0,
+    "y": 28,
+    "w": 12,
+    "h": 6
+   }
+  },
+  {
+   "id": 12,
+   "type": "table",
+   "title": "Задания staging",
+   "description": "Последние запуски e2e и ночного обновления данных staging (staging-refresh): успешно, идёт или упало.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "VictoriaMetrics"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "VictoriaMetrics"
+     },
+     "expr": "max by (job_name, namespace) (kube_job_status_succeeded{namespace=~\"auth-staging|site-staging\"}) * 1 or max by (job_name, namespace) (kube_job_status_failed{namespace=~\"auth-staging|site-staging\"} > 0) * -1",
+     "instant": true,
+     "format": "table"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "none",
+     "custom": {
+      "cellOptions": {
+       "type": "color-text"
+      },
+      "align": "left"
+     },
+     "mappings": [
+      {
+       "type": "value",
+       "options": {
+        "1": {
+         "text": "успешно",
+         "color": "green",
+         "index": 0
+        },
+        "0": {
+         "text": "идёт",
+         "color": "blue",
+         "index": 1
+        },
+        "-1": {
+         "text": "упало",
+         "color": "red",
+         "index": 2
+        }
+       }
+      }
+     ]
+    },
+    "overrides": []
+   },
+   "options": {
+    "showHeader": true,
+    "cellHeight": "sm",
+    "sortBy": []
+   },
+   "transformations": [
+    {
+     "id": "organize",
+     "options": {
+      "includeByName": {
+       "namespace": true,
+       "job_name": true,
+       "Value": true
+      },
+      "indexByName": {
+       "namespace": 0,
+       "job_name": 1,
+       "Value": 2
+      },
+      "renameByName": {
+       "namespace": "Где",
+       "job_name": "Задание",
+       "Value": "Итог"
+      }
+     }
+    }
+   ],
+   "gridPos": {
+    "x": 12,
+    "y": 28,
+    "w": 12,
+    "h": 6
+   }
+  },
+  {
+   "id": 13,
+   "type": "row",
+   "title": "Почему не работает",
+   "collapsed": false,
+   "gridPos": {
+    "x": 0,
+    "y": 34,
+    "w": 24,
+    "h": 1
+   },
+   "panels": []
+  },
+  {
+   "id": 14,
+   "type": "logs",
+   "title": "Ошибки Flux за последний час",
+   "description": "Сообщения об ошибках контроллеров Flux: что именно не применилось и почему. Пусто — ошибок нет.",
+   "datasource": {
+    "type": "victoriametrics-logs-datasource",
+    "uid": "victorialogs"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "victoriametrics-logs-datasource",
+      "uid": "victorialogs"
+     },
+     "expr": "kubernetes.pod_namespace:=\"flux-system\" level:=\"error\"",
+     "queryType": "instant",
+     "maxLines": 200,
+     "editorMode": "code"
+    }
+   ],
+   "options": {
+    "showTime": true,
+    "wrapLogMessage": true,
+    "sortOrder": "Descending",
+    "enableLogDetails": true,
+    "dedupStrategy": "none",
+    "prettifyLogMessage": false
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 35,
+    "w": 24,
+    "h": 10
+   }
+  }
+ ],
+ "templating": {
+  "list": []
+ },
+ "annotations": {
+  "list": [
+   {
+    "builtIn": 1,
+    "type": "dashboard",
+    "name": "Annotations & Alerts",
+    "datasource": {
+     "type": "grafana",
+     "uid": "-- Grafana --"
+    },
+    "enable": true,
+    "hide": true,
+    "iconColor": "rgba(0, 211, 255, 1)"
+   },
+   {
+    "name": "Релиз",
+    "enable": true,
+    "iconColor": "green",
+    "datasource": {
+     "type": "prometheus",
+     "uid": "VictoriaMetrics"
+    },
+    "expr": "max by (revision) (flux_resource_info{kind=\"GitRepository\", exported_namespace=\"flux-system\", name=\"flux-system\"}) unless max by (revision) (flux_resource_info{kind=\"GitRepository\", exported_namespace=\"flux-system\", name=\"flux-system\"} offset 2m)",
+    "step": "60s",
+    "titleFormat": "Релиз",
+    "textFormat": "main → {{revision}}",
+    "useValueForTime": false
+   },
+   {
+    "name": "Новые поды",
+    "enable": true,
+    "iconColor": "purple",
+    "datasource": {
+     "type": "prometheus",
+     "uid": "VictoriaMetrics"
+    },
+    "expr": "changes(kube_deployment_metadata_generation{namespace=~\"site|site-staging|auth|auth-staging|mail|teamspeak|nextcloud|headscale\"}[2m]) > 0",
+    "step": "60s",
+    "titleFormat": "Выкатка {{namespace}}/{{deployment}}",
+    "textFormat": "Новая версия пода",
+    "useValueForTime": false
+   }
+  ]
+ }
+}

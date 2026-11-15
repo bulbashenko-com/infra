@@ -17,11 +17,14 @@ infra=$org/infra
 target=dev
 
 # Where each app is pinned (all pins in all its files must carry the same SHA; one file per environment that runs
-# it), its image, and for Git-sourced apps the paths Flux reads (the GitRepository `ignore` list): other changes
+# it), its images (all must exist), and for Git-sourced apps the paths Flux reads (the GitRepository `ignore` list): other changes
 # need no deploy.
 image='' deploy_paths=''
 case $app in
-  site)      files=(apps/base/site/kustomization.yaml); keys=newTag; image=ghcr.io/$org/site ;;
+  # site: the app and its migrations (base, both environments), the refresh's migrations and the smoke suite
+  # (staging only); all built from the same commit.
+  site)      files=(apps/base/site/kustomization.yaml apps/staging/site/kustomization.yaml apps/staging/site-e2e/flux.yaml)
+             keys=newTag; image="ghcr.io/$org/site ghcr.io/$org/site-migrate ghcr.io/$org/site-e2e" ;;
   auth)      files=(clusters/hel1/auth.yaml apps/staging/auth/flux.yaml); keys='commit|newTag'; image=ghcr.io/$org/auth-ui ;;
   mail)      files=(clusters/hel1/mail.yaml); keys=commit; deploy_paths='^(kustomization\.yaml|deploy/k8s/)' ;;
   teamspeak) files=(clusters/hel1/teamspeak.yaml); keys=commit; deploy_paths='^(kustomization\.yaml|deploy/k8s/)' ;;
@@ -41,9 +44,19 @@ case $(compare main "$sha") in
 esac
 short=${sha:0:7}
 
-if [ -n "$image" ] && ! docker manifest inspect "$image:$sha" >/dev/null 2>&1; then
-  echo "image $image:$sha not found (did the app's image build finish?)" >&2; exit 1
-fi
+for i in $image; do
+  docker manifest inspect "$i:$sha" >/dev/null 2>&1 || { echo "image $i:$sha not found (did the app's image build finish?)" >&2; exit 1; }
+done
+
+# True when every commit in the compare result <json> belongs to a pull request labelled `security`.
+security_only() {
+  local c labels
+  for c in $(jq -r '.commits[].sha' <<<"$1"); do
+    labels=$(gh api "repos/$org/$app/commits/$c/pulls" -q '[.[].labels[].name] | join(" ")') || return 1
+    [[ " $labels " == *" security "* ]] || return 1
+  done
+  [ "$(jq '.commits | length' <<<"$1")" -gt 0 ]
+}
 
 # One attempt against the current tip of $target; returns 2 when it moved underneath (retry).
 # Called as `attempt || rc=$?`, where set -e does not apply: every API result is checked by hand.
@@ -86,6 +99,9 @@ attempt() {
     esac
     echo
     echo "Source: https://github.com/$org/$app/compare/$old...$sha"
+    # Only security updates (every new commit came from a PR labelled `security`, which Renovate sets on
+    # vulnerability fixes): scripts/release-pr.sh may then let the release merge itself (docs/workflow.md).
+    if [ "$status" = ahead ] && security_only "$cmp"; then echo; echo "Security-Update: yes"; fi
   )
 
   entries='[]'

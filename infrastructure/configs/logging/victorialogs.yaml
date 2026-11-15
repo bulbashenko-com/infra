@@ -1,0 +1,48 @@
+# VictoriaLogs single node: one pod, one local-path volume (logs are not backed up; losing them loses history only).
+# Retention 14 days or 8 GiB, whichever comes first. Its own metrics are scraped by vmagent (VMServiceScrape).
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: victoria-logs-single
+  namespace: logging
+spec:
+  interval: 12h
+  url: oci://ghcr.io/victoriametrics/helm-charts/victoria-logs-single
+  ref:
+    tag: 0.13.10
+  layerSelector:
+    mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
+    operation: copy
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: victorialogs
+  namespace: logging
+spec:
+  interval: 1h
+  timeout: 10m
+  chartRef:
+    kind: OCIRepository
+    name: victoria-logs-single
+  values:
+    fullnameOverride: victorialogs
+    server:
+      retentionPeriod: 14d
+      retentionDiskSpaceUsage: 8
+      persistentVolume:
+        enabled: true
+        size: 10Gi
+      resources:
+        requests: { cpu: 50m, memory: 160Mi }
+        limits: { memory: 512Mi }
+      vmServiceScrape:
+        enabled: true
+      # Its volume stays on the node of the first start: not hel1-core, which already holds Postgres,
+      # VictoriaMetrics, Garage, Nextcloud and mail and runs at 80%+ memory.
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - { key: node.bulbashenko.com/role, operator: NotIn, values: [mail] }

@@ -3,7 +3,9 @@ kind: Kustomization
 resources:
   - site.yaml
 images:
-  # The one pin for both environments, changed by scripts/promote.sh on dev: staging runs it at once,
-  # production with the next release (dev -> main).
+  # The one pin for both environments (the app and its migrations, same commit), changed by scripts/promote.sh on
+  # dev: staging runs it at once, production with the next release (dev -> main).
   - name: ghcr.io/bulbashenko-com/site
-    newTag: 5af8c6dfcc169bf19cede421bc57e63272df972b
+    newTag: 0452787dfe6cd1379e790027d2bc804854772897
+  - name: ghcr.io/bulbashenko-com/site-migrate
+    newTag: 0452787dfe6cd1379e790027d2bc804854772897

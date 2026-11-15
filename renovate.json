@@ -1,9 +1,14 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended"],
+  "extends": ["local>bulbashenko-com/infra:renovate-preset"],
+  "description": "Updates land on dev (the default branch, staging); production gets them with the release PR.",
   "flux": { "managerFilePatterns": ["/\\.ya?ml$/"] },
   "kubernetes": { "managerFilePatterns": ["/(clusters|infrastructure|apps)/.+\\.ya?ml$/"] },
   "packageRules": [
-    { "matchUpdateTypes": ["minor", "patch"], "matchCurrentVersion": "!/^0/", "groupName": "non-major" }
+    {
+      "description": "Stateful services migrate their data on upgrade and have no staging copy: never merged automatically.",
+      "matchPackageNames": ["/nextcloud/", "/cloudnative-pg/", "/postgresql/", "/garage/", "/stalwart/", "/headscale/", "/teamspeak/"],
+      "automerge": false
+    }
   ]
 }

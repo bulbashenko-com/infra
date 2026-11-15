@@ -1,0 +1,555 @@
+{
+ "uid": "releases",
+ "title": "Релизы",
+ "description": "Что сейчас работает в проде и на staging, что ждёт следующего релиза и когда были прошлые. Релиз = merge PR «Release» dev → main в infra (docs/workflow.md).",
+ "tags": [
+  "bulbashenko"
+ ],
+ "timezone": "browser",
+ "schemaVersion": 39,
+ "refresh": "1m",
+ "editable": true,
+ "graphTooltip": 1,
+ "time": {
+  "from": "now-7d",
+  "to": "now"
+ },
+ "links": [
+  {
+   "title": "Здоровье",
+   "url": "/d/health",
+   "type": "link",
+   "targetBlank": false,
+   "icon": "dashboard"
+  },
+  {
+   "title": "Выкатка",
+   "url": "/d/rollout",
+   "type": "link",
+   "targetBlank": false,
+   "icon": "dashboard"
+  },
+  {
+   "title": "Логи",
+   "url": "/d/logs",
+   "type": "link",
+   "targetBlank": false,
+   "icon": "dashboard"
+  }
+ ],
+ "panels": [
+  {
+   "id": 2,
+   "type": "row",
+   "title": "Сейчас",
+   "collapsed": false,
+   "gridPos": {
+    "x": 0,
+    "y": 0,
+    "w": 24,
+    "h": 1
+   },
+   "panels": []
+  },
+  {
+   "id": 3,
+   "type": "stat",
+   "title": "Приложений ждут релиза",
+   "description": "Сколько приложений на staging уже новее, чем в проде (сайт, вход). 0 — прод и staging совпадают; иначе их принесёт следующий релиз.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "VictoriaMetrics"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "VictoriaMetrics"
+     },
+     "expr": "(count(max by (image) (kube_pod_container_info{namespace=\"site-staging\", container=\"site\"}) unless on (image) max by (image) (kube_pod_container_info{namespace=\"site\", container=\"site\"})) or vector(0)) + (count(max by (revision) (flux_resource_info{kind=\"Kustomization\", exported_namespace=\"auth-staging\", name=\"auth\"}) unless on (revision) max by (revision) (flux_resource_info{kind=\"Kustomization\", exported_namespace=\"flux-system\", name=\"auth\"})) or vector(0))",
+     "instant": true
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "none",
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       },
+       {
+        "color": "blue",
+        "value": 1
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "mappings": []
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ]
+    },
+    "colorMode": "background",
+    "graphMode": "none",
+    "textMode": "value",
+    "justifyMode": "center"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 1,
+    "w": 6,
+    "h": 8
+   }
+  },
+  {
+   "id": 4,
+   "type": "table",
+   "title": "Версии: прод и staging",
+   "description": "Короткий коммит (или версия чарта), который сейчас работает. Разные значения в строке — на staging уже новая версия, в прод она попадёт с релизом. У конфига кластера коммиты всегда разные (у main свои merge-коммиты), это нормально.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "VictoriaMetrics"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "VictoriaMetrics"
+     },
+     "expr": "label_replace(label_replace(label_replace(max by (image) (kube_pod_container_info{namespace=\"site\", container=\"site\"}), \"version\", \"$1\", \"image\", \".*:([0-9a-f]{7})[0-9a-f]*$\"), \"app\", \"Сайт\", \"\", \"\"), \"env\", \"prod\", \"\", \"\") or label_replace(label_replace(label_replace(max by (image) (kube_pod_container_info{namespace=\"site-staging\", container=\"site\"}), \"version\", \"$1\", \"image\", \".*:([0-9a-f]{7})[0-9a-f]*$\"), \"app\", \"Сайт\", \"\", \"\"), \"env\", \"staging\", \"\", \"\") or label_replace(label_replace(label_replace(max by (revision) (flux_resource_info{kind=\"Kustomization\", exported_namespace=\"flux-system\", name=\"auth\"}), \"version\", \"$1\", \"revision\", \".*sha1:([0-9a-f]{7}).*\"), \"app\", \"Вход (SSO)\", \"\", \"\"), \"env\", \"prod\", \"\", \"\") or label_replace(label_replace(label_replace(max by (revision) (flux_resource_info{kind=\"Kustomization\", exported_namespace=\"auth-staging\", name=\"auth\"}), \"version\", \"$1\", \"revision\", \".*sha1:([0-9a-f]{7}).*\"), \"app\", \"Вход (SSO)\", \"\", \"\"), \"env\", \"staging\", \"\", \"\") or label_replace(label_replace(label_replace(max by (revision) (flux_resource_info{kind=\"Kustomization\", exported_namespace=\"flux-system\", name=\"mail\"}), \"version\", \"$1\", \"revision\", \".*sha1:([0-9a-f]{7}).*\"), \"app\", \"Почта\", \"\", \"\"), \"env\", \"prod\", \"\", \"\") or label_replace(label_replace(label_replace(max by (revision) (flux_resource_info{kind=\"Kustomization\", exported_namespace=\"flux-system\", name=\"teamspeak\"}), \"version\", \"$1\", \"revision\", \".*sha1:([0-9a-f]{7}).*\"), \"app\", \"TeamSpeak\", \"\", \"\"), \"env\", \"prod\", \"\", \"\") or label_replace(label_replace(label_replace(max by (revision) (flux_resource_info{kind=\"HelmRelease\", exported_namespace=\"nextcloud\", name=\"nextcloud\"}), \"version\", \"$1\", \"revision\", \"(.*)\"), \"app\", \"Облако\", \"\", \"\"), \"env\", \"prod\", \"\", \"\") or label_replace(label_replace(label_replace(max by (revision) (flux_resource_info{kind=\"GitRepository\", exported_namespace=\"flux-system\", name=\"flux-system\"}), \"version\", \"$1\", \"revision\", \".*sha1:([0-9a-f]{7}).*\"), \"app\", \"Конфиг кластера (infra)\", \"\", \"\"), \"env\", \"prod\", \"\", \"\") or label_replace(label_replace(label_replace(max by (revision) (flux_resource_info{kind=\"GitRepository\", exported_namespace=\"flux-system\", name=\"infra-dev\"}), \"version\", \"$1\", \"revision\", \".*sha1:([0-9a-f]{7}).*\"), \"app\", \"Конфиг кластера (infra)\", \"\", \"\"), \"env\", \"staging\", \"\", \"\")",
+     "instant": true,
+     "format": "table"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "none",
+     "custom": {
+      "cellOptions": {
+       "type": "color-text"
+      },
+      "align": "left"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "showHeader": true,
+    "cellHeight": "sm",
+    "sortBy": []
+   },
+   "transformations": [
+    {
+     "id": "groupingToMatrix",
+     "options": {
+      "columnField": "env",
+      "rowField": "app",
+      "valueField": "version",
+      "emptyValue": "empty"
+     }
+    },
+    {
+     "id": "organize",
+     "options": {
+      "renameByName": {
+       "app\\env": "app"
+      }
+     }
+    },
+    {
+     "id": "organize",
+     "options": {
+      "includeByName": {
+       "app": true,
+       "prod": true,
+       "staging": true
+      },
+      "indexByName": {
+       "app": 0,
+       "prod": 1,
+       "staging": 2
+      },
+      "renameByName": {
+       "app": "Что",
+       "prod": "Прод",
+       "staging": "Staging"
+      }
+     }
+    }
+   ],
+   "gridPos": {
+    "x": 6,
+    "y": 1,
+    "w": 18,
+    "h": 8
+   }
+  },
+  {
+   "id": 5,
+   "type": "table",
+   "title": "Открытый релиз",
+   "description": "PR «Release» dev → main: что войдёт в прод. Пусто — всё уже в проде. Merge этого PR и есть релиз; после него придёт сообщение в Telegram.",
+   "datasource": {
+    "type": "grafana-github-datasource",
+    "uid": "github"
+   },
+   "targets": [
+    {
+     "queryType": "Pull_Requests",
+     "owner": "bulbashenko-com",
+     "repository": "infra",
+     "options": {
+      "query": "is:open label:release base:main",
+      "timeField": 4
+     },
+     "refId": "A",
+     "datasource": {
+      "type": "grafana-github-datasource",
+      "uid": "github"
+     }
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "custom": {
+      "align": "left"
+     }
+    },
+    "overrides": [
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "Релиз"
+      },
+      "properties": [
+       {
+        "id": "links",
+        "value": [
+         {
+          "title": "Открыть PR",
+          "targetBlank": true,
+          "url": "${__data.fields.url}"
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "url"
+      },
+      "properties": [
+       {
+        "id": "custom.hidden",
+        "value": true
+       }
+      ]
+     }
+    ]
+   },
+   "options": {
+    "showHeader": true,
+    "cellHeight": "sm",
+    "sortBy": []
+   },
+   "transformations": [
+    {
+     "id": "organize",
+     "options": {
+      "includeByName": {
+       "title": true,
+       "number": true,
+       "created_at": true,
+       "url": true
+      },
+      "indexByName": {
+       "title": 0,
+       "number": 1,
+       "created_at": 2,
+       "url": 3
+      },
+      "renameByName": {
+       "title": "Релиз",
+       "number": "PR",
+       "created_at": "Открыт",
+       "url": "url"
+      }
+     }
+    }
+   ],
+   "gridPos": {
+    "x": 0,
+    "y": 9,
+    "w": 24,
+    "h": 4
+   }
+  },
+  {
+   "id": 6,
+   "type": "row",
+   "title": "История",
+   "collapsed": false,
+   "gridPos": {
+    "x": 0,
+    "y": 13,
+    "w": 24,
+    "h": 1
+   },
+   "panels": []
+  },
+  {
+   "id": 7,
+   "type": "table",
+   "title": "Последние релизы",
+   "description": "Каждый merge в main получает тег vГГГГ.ММ.ДД и страницу с описанием и итогом выкатки («Применён за N мин» или ошибка). Клик — страница релиза; оттуда же откат.",
+   "datasource": {
+    "type": "grafana-github-datasource",
+    "uid": "github"
+   },
+   "targets": [
+    {
+     "queryType": "Releases",
+     "owner": "bulbashenko-com",
+     "repository": "infra",
+     "options": {},
+     "refId": "A",
+     "datasource": {
+      "type": "grafana-github-datasource",
+      "uid": "github"
+     }
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "custom": {
+      "align": "left"
+     }
+    },
+    "overrides": [
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "Релиз"
+      },
+      "properties": [
+       {
+        "id": "links",
+        "value": [
+         {
+          "title": "Открыть релиз",
+          "targetBlank": true,
+          "url": "${__data.fields.url}"
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "url"
+      },
+      "properties": [
+       {
+        "id": "custom.hidden",
+        "value": true
+       }
+      ]
+     }
+    ]
+   },
+   "options": {
+    "showHeader": true,
+    "cellHeight": "sm",
+    "sortBy": [
+     {
+      "displayName": "Когда",
+      "desc": true
+     }
+    ]
+   },
+   "transformations": [
+    {
+     "id": "organize",
+     "options": {
+      "includeByName": {
+       "name": true,
+       "published_at": true,
+       "url": true
+      },
+      "indexByName": {
+       "name": 0,
+       "published_at": 1,
+       "url": 2
+      },
+      "renameByName": {
+       "name": "Релиз",
+       "published_at": "Когда",
+       "url": "url"
+      }
+     }
+    }
+   ],
+   "gridPos": {
+    "x": 0,
+    "y": 14,
+    "w": 12,
+    "h": 10
+   }
+  },
+  {
+   "id": 8,
+   "type": "table",
+   "title": "Выкатки (GitHub Actions)",
+   "description": "Запуски release-tag: каждый ждёт, пока Flux применит релиз. Зелёный — применён, красный — ошибка или таймаут (подробности в запуске).",
+   "datasource": {
+    "type": "grafana-github-datasource",
+    "uid": "github"
+   },
+   "targets": [
+    {
+     "queryType": "Workflow_Runs",
+     "owner": "bulbashenko-com",
+     "repository": "infra",
+     "options": {
+      "workflow": "release-tag.yml",
+      "workflowID": "release-tag.yml",
+      "branch": "main"
+     },
+     "refId": "A",
+     "datasource": {
+      "type": "grafana-github-datasource",
+      "uid": "github"
+     }
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "custom": {
+      "align": "left"
+     }
+    },
+    "overrides": [
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "Коммит"
+      },
+      "properties": [
+       {
+        "id": "links",
+        "value": [
+         {
+          "title": "Открыть запуск",
+          "targetBlank": true,
+          "url": "${__data.fields.html_url}"
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "html_url"
+      },
+      "properties": [
+       {
+        "id": "custom.hidden",
+        "value": true
+       }
+      ]
+     }
+    ]
+   },
+   "options": {
+    "showHeader": true,
+    "cellHeight": "sm",
+    "sortBy": [
+     {
+      "displayName": "Старт",
+      "desc": true
+     }
+    ]
+   },
+   "transformations": [
+    {
+     "id": "organize",
+     "options": {
+      "includeByName": {
+       "head_sha": true,
+       "conclusion": true,
+       "run_started_at": true,
+       "html_url": true
+      },
+      "indexByName": {
+       "head_sha": 0,
+       "conclusion": 1,
+       "run_started_at": 2,
+       "html_url": 3
+      },
+      "renameByName": {
+       "head_sha": "Коммит",
+       "conclusion": "Итог",
+       "run_started_at": "Старт",
+       "html_url": "html_url"
+      }
+     }
+    }
+   ],
+   "timeFrom": "30d",
+   "gridPos": {
+    "x": 12,
+    "y": 14,
+    "w": 12,
+    "h": 10
+   }
+  }
+ ],
+ "templating": {
+  "list": []
+ },
+ "annotations": {
+  "list": [
+   {
+    "builtIn": 1,
+    "type": "dashboard",
+    "name": "Annotations & Alerts",
+    "datasource": {
+     "type": "grafana",
+     "uid": "-- Grafana --"
+    },
+    "enable": true,
+    "hide": true,
+    "iconColor": "rgba(0, 211, 255, 1)"
+   },
+   {
+    "name": "Релиз",
+    "enable": true,
+    "iconColor": "green",
+    "datasource": {
+     "type": "prometheus",
+     "uid": "VictoriaMetrics"
+    },
+    "expr": "max by (revision) (flux_resource_info{kind=\"GitRepository\", exported_namespace=\"flux-system\", name=\"flux-system\"}) unless max by (revision) (flux_resource_info{kind=\"GitRepository\", exported_namespace=\"flux-system\", name=\"flux-system\"} offset 2m)",
+    "step": "60s",
+    "titleFormat": "Релиз",
+    "textFormat": "main → {{revision}}",
+    "useValueForTime": false
+   }
+  ]
+ }
+}

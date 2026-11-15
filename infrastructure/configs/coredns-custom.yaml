@@ -1,0 +1,14 @@
+# In-cluster names for staging. bulbashenko.dev has no public DNS (mesh only, Headscale extra records), so pods could
+# not resolve it: the staging site failed to reach its SSO (auth.bulbashenko.dev, ENOTFOUND) and admin sign-in broke.
+# Every bulbashenko.dev name now resolves to Traefik's Service inside the cluster; the staging routes admit the pod
+# network (staging-access). k3s imports `*.override` keys into its CoreDNS server block
+# (https://docs.k3s.io/advanced#coredns-custom-configuration-imports); CoreDNS reloads on change.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: coredns-custom
+  namespace: kube-system
+  labels: { bulbashenko.com/layer: system, bulbashenko.com/app: kubernetes }
+data:
+  bulbashenko-dev.override: |
+    rewrite stop name regex ^(.+\.)?bulbashenko\.dev\.$ traefik.kube-system.svc.cluster.local. answer auto

@@ -7,4 +7,6 @@ resources:
   - cloudflared
   - flux-web
   - monitoring
+  - logging
   - system-namespaces.yaml
+  - coredns-custom.yaml

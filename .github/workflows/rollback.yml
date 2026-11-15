@@ -1,0 +1,64 @@
+# Production back to an earlier release, through a pull request the owner merges (docs/workflow.md, "Откат").
+# Run: Actions → rollback → Run workflow → tag (e.g. v2026.11.14), or `just rollback <tag>`.
+# The PR sets main's files exactly to that tag (everything after it is undone, including several releases).
+# Flux applies it like any release; it gets its own tag; dev receives it through the automatic back-merge, so staging
+# rolls back too and the next release starts from the restored state. To bring the changes back later: revert the
+# rollback commit on dev, fix, release again.
+# Database migrations are not undone: they are written to stay compatible with the previous version.
+name: rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to go back to (vYYYY.MM.DD[.N])
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  pr:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/create-github-app-token@v3
+        id: token
+        with:
+          client-id: ${{ vars.DEPLOY_APP_CLIENT_ID }}
+          private-key: ${{ secrets.DEPLOY_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+      - name: Open the rollback PR
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+          TAG: ${{ inputs.tag }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ vars.TELEGRAM_CHAT_ID }}
+        run: |
+          set -euo pipefail
+          [[ $TAG =~ ^v[0-9]{4}\.[0-9]{2}\.[0-9]{2}(\.[0-9]+)?$ ]] || { echo "not a release tag: $TAG" >&2; exit 1; }
+          git fetch -q --tags
+          target=$(git rev-parse -q --verify "refs/tags/$TAG^{commit}") || { echo "no tag $TAG" >&2; exit 1; }
+          git merge-base --is-ancestor "$target" origin/main || { echo "$TAG is not on main" >&2; exit 1; }
+          main=$(git rev-parse origin/main)
+          [ "$(git rev-parse "$target^{tree}")" != "$(git rev-parse "$main^{tree}")" ] || { echo "main already equals $TAG"; exit 0; }
+          # A commit on top of main whose tree is the tag's tree, made through the API (signed as the App).
+          tree=$(git rev-parse "$target^{tree}")
+          undone=$(git log --first-parent --format='- %s (%h)' "$target..$main")
+          message=$(printf 'Rollback to %s\n\nRestores main to %s (%s). Undone:\n%s\n' "$TAG" "$TAG" "${target:0:7}" "$undone")
+          commit=$(gh api "repos/$GITHUB_REPOSITORY/git/commits" -f message="$message" -f tree="$tree" -f "parents[]=$main" -q .sha)
+          branch=rollback/$TAG-$(date -u +%H%M%S)
+          gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/heads/$branch" -f sha="$commit" >/dev/null
+          body=$(printf '%s\n\n%s\n\n%s\n%s\n\n%s\n' \
+            "Откат production к **$TAG** (\`${target:0:7}\`). Merge = откат: Flux применит его как обычный релиз, за 2–5 минут." \
+            "Отменяется:" "$undone" "" \
+            "После мержа \`dev\` получит этот откат автоматически (back-merge), staging тоже откатится. Чтобы вернуть изменения: revert коммита отката в \`dev\`, исправление, новый релиз. Миграции БД не откатываются (они совместимы с предыдущей версией).")
+          url=$(gh pr create --base main --head "$branch" --title "Rollback to $TAG" --body "$body" --reviewer bulbashenko)
+          echo "$url" >> "$GITHUB_STEP_SUMMARY"
+          scripts/telegram.sh "⏪ <b>PR отката к $TAG готов</b>
+          Merge = откат prod. <a href=\"$url\">Открыть</a>"
