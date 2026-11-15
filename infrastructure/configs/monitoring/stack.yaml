@@ -141,10 +141,11 @@ spec:
             # Heartbeat and inhibition helpers from the upstream rules.
             - receiver: blackhole
               matchers: ['alertname=~"Watchdog|InfoInhibitor"']
-            # Flux failures (flux-alerts.yaml): one message per object, repeated while it keeps failing.
+            # Flux failures (flux-alerts.yaml): each event its own message, once. Flux puts the revision into the
+            # labels, so grouping by object re-sent the whole list of earlier failures with every new commit.
             - receiver: telegram-events
               matchers: ['alertname=~"Flux.+"', 'reportingcontroller!=""']
-              group_by: [alertname, namespace, name]
+              group_by: ['...']
               group_wait: 10s
               repeat_interval: 6h
             # Upstream info-level rules (throttling, quota hints) are dashboard material, not messages.
