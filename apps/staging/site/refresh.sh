@@ -14,6 +14,10 @@ case "$1" in
     rclone --config /dev/null sync garage:media garage:media-staging --stats-one-line -v ;;
   restore)
     [ ! -e /work/none ] || exit 0
-    pg_restore --clean --if-exists --no-owner --no-privileges --single-transaction --dbname="$DATABASE_URL" /work/site.dump
+    # An exact copy of production, migration history included: everything in the schema goes first. A --clean
+    # restore dropped only what the dump contains, so staging kept its own _prisma_migrations next to production's
+    # older tables, and the migrate step then saw drift instead of migrations to apply.
+    psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -c 'DROP SCHEMA public CASCADE' -c 'CREATE SCHEMA public'
+    pg_restore --no-owner --no-privileges --single-transaction --dbname="$DATABASE_URL" /work/site.dump
     echo "staging restored from $(date -u -r /work/site.dump +%FT%TZ)" ;;
 esac
