@@ -91,10 +91,8 @@ jobs:
         with:
           fetch-depth: 0
       - uses: home-operations/flate/action@v0.6.5
-        with:
-          base: ${{ github.base_ref || github.ref_name }}
       - name: Render
-        run: flate test
+        run: flate test all --path .
       - name: Diff for the pull request
         if: github.event_name == 'pull_request'
         env:
@@ -103,7 +101,8 @@ jobs:
           PR: ${{ github.event.pull_request.number }}
         run: |
           set -uo pipefail
-          diff=$(flate diff --base "origin/$BASE" -o github 2>diff.err); rc=$?
+          git worktree add -q ../baseline "origin/$BASE"
+          diff=$(flate diff all --path . --path-orig ../baseline -o github 2>diff.err); rc=$?
           {
             echo "<!-- flate-diff -->"
             echo "### Что изменится в кластере (\`$BASE\` → этот PR)"
