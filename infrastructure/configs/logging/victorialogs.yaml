@@ -38,3 +38,11 @@ spec:
         limits: { memory: 512Mi }
       vmServiceScrape:
         enabled: true
+      # Its volume stays on the node of the first start: not hel1-core, which already holds Postgres,
+      # VictoriaMetrics, Garage, Nextcloud and mail and runs at 80%+ memory.
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - { key: node.bulbashenko.com/role, operator: NotIn, values: [mail] }

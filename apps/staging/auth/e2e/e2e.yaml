@@ -20,6 +20,14 @@ spec:
         runAsGroup: 1000
         seccompProfile: { type: RuntimeDefault }
       serviceAccountName: e2e
+      # Not next to production's databases and mail (hel1-core): a browser run must not starve them.
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                  - { key: node.bulbashenko.com/role, operator: NotIn, values: [mail] }
       initContainers:
         # Test exactly this version: wait until Flux has applied the commit this image was built from (E2E_REVISION)
         # to the stack's Kustomization and it is ready, then until the services answer, clients included.
@@ -75,8 +83,9 @@ spec:
             - { name: E2E_MAILPIT, value: "http://mailpit:8025" }
           resources:
             # Chromium is CPU-bound; with 200m a TOTP test took 1.7 min here against 37 s in CI.
+            # The limit keeps staging tests from taking cores production needs (it took 1.5 on hel1-core).
             requests: { cpu: "1", memory: 512Mi }
-            limits: { memory: 1536Mi }
+            limits: { cpu: "1500m", memory: 1536Mi }
           securityContext: *hardened
           volumeMounts:
             - { name: tmp, mountPath: /tmp }
