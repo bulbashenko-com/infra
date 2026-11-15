@@ -14,6 +14,14 @@ spec:
     spec:
       restartPolicy: Never
       automountServiceAccountToken: false
+      # Not next to production's databases and mail (hel1-core): a browser run must not starve them.
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                  - { key: node.bulbashenko.com/role, operator: NotIn, values: [mail] }
       securityContext:
         runAsNonRoot: true
         # pwuser in the Playwright image.
@@ -67,9 +75,10 @@ spec:
             - { name: E2E_EDGE, value: traefik.kube-system.svc.cluster.local }
             - { name: E2E_KRATOS_ADMIN, value: "http://kratos:4434" }
             - { name: E2E_KETO_WRITE, value: "http://keto:4467" }
+          # Chromium takes every core it can get: the limit keeps staging tests from slowing production down.
           resources:
             requests: { cpu: 500m, memory: 512Mi }
-            limits: { memory: 1536Mi }
+            limits: { cpu: "1", memory: 1536Mi }
           securityContext: *hardened
           volumeMounts:
             - { name: tmp, mountPath: /tmp }
