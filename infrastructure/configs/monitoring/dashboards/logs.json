@@ -1,0 +1,367 @@
+{
+ "uid": "logs",
+ "title": "Логи",
+ "description": "Логи всех подов кластера за 14 дней и события Kubernetes. Сверху выбери namespace (приложение) и, если нужно, текст для поиска.",
+ "tags": [
+  "bulbashenko"
+ ],
+ "timezone": "browser",
+ "schemaVersion": 39,
+ "refresh": "",
+ "editable": true,
+ "graphTooltip": 1,
+ "time": {
+  "from": "now-1h",
+  "to": "now"
+ },
+ "links": [
+  {
+   "title": "Здоровье",
+   "url": "/d/health",
+   "type": "link",
+   "targetBlank": false,
+   "icon": "dashboard"
+  },
+  {
+   "title": "Релизы",
+   "url": "/d/releases",
+   "type": "link",
+   "targetBlank": false,
+   "icon": "dashboard"
+  },
+  {
+   "title": "Выкатка",
+   "url": "/d/rollout",
+   "type": "link",
+   "targetBlank": false,
+   "icon": "dashboard"
+  }
+ ],
+ "panels": [
+  {
+   "id": 2,
+   "type": "row",
+   "title": "Сколько ошибок",
+   "collapsed": false,
+   "gridPos": {
+    "x": 0,
+    "y": 0,
+    "w": 24,
+    "h": 1
+   },
+   "panels": []
+  },
+  {
+   "id": 3,
+   "type": "timeseries",
+   "title": "Строки с ошибками по приложениям",
+   "description": "Сколько строк логов похожи на ошибку (level=error или слова error/exception/fatal), по namespace. Всплеск — что-то сломалось в это время; кликни по namespace в переменной сверху.",
+   "datasource": {
+    "type": "victoriametrics-logs-datasource",
+    "uid": "victorialogs"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "victoriametrics-logs-datasource",
+      "uid": "victorialogs"
+     },
+     "expr": "(level:in(\"error\", \"ERROR\", \"fatal\", \"FATAL\", \"panic\") or _msg:~\"(?i)\\\\b(error|exception|fatal|panic)\\\\b\") | stats by (kubernetes.pod_namespace) count()",
+     "queryType": "statsRange",
+     "legendFormat": "{{kubernetes.pod_namespace}}",
+     "editorMode": "code"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short",
+     "custom": {
+      "drawStyle": "bars",
+      "fillOpacity": 60,
+      "stacking": {
+       "mode": "normal"
+      },
+      "showPoints": "never"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 1,
+    "w": 12,
+    "h": 8
+   }
+  },
+  {
+   "id": 4,
+   "type": "timeseries",
+   "title": "Ответы сайтов с ошибкой (5xx)",
+   "description": "Запросы, на которые сервис ответил ошибкой 5xx, по домену (access-лог Traefik). Пусто — ошибок нет.",
+   "datasource": {
+    "type": "victoriametrics-logs-datasource",
+    "uid": "victorialogs"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "victoriametrics-logs-datasource",
+      "uid": "victorialogs"
+     },
+     "expr": "kubernetes.container_name:=\"traefik\" DownstreamStatus:>=500 | stats by (RequestHost) count()",
+     "queryType": "statsRange",
+     "legendFormat": "{{RequestHost}}",
+     "editorMode": "code"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short",
+     "custom": {
+      "drawStyle": "bars",
+      "fillOpacity": 60,
+      "stacking": {
+       "mode": "normal"
+      },
+      "showPoints": "never"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 1,
+    "w": 12,
+    "h": 8
+   }
+  },
+  {
+   "id": 5,
+   "type": "row",
+   "title": "Логи",
+   "collapsed": false,
+   "gridPos": {
+    "x": 0,
+    "y": 9,
+    "w": 24,
+    "h": 1
+   },
+   "panels": []
+  },
+  {
+   "id": 6,
+   "type": "logs",
+   "title": "Логи выбранного namespace",
+   "description": "Последние строки логов (новые сверху). Клик по строке — все поля: pod, контейнер, метки. Поиск: поле «Текст» сверху принимает слова или LogsQL (например level:error).",
+   "datasource": {
+    "type": "victoriametrics-logs-datasource",
+    "uid": "victorialogs"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "victoriametrics-logs-datasource",
+      "uid": "victorialogs"
+     },
+     "expr": "kubernetes.pod_namespace:~\"${namespace:regex}\" ${search:raw}",
+     "queryType": "instant",
+     "maxLines": 500,
+     "editorMode": "code"
+    }
+   ],
+   "options": {
+    "showTime": true,
+    "wrapLogMessage": true,
+    "sortOrder": "Descending",
+    "enableLogDetails": true,
+    "dedupStrategy": "none",
+    "prettifyLogMessage": false
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 10,
+    "w": 24,
+    "h": 16
+   }
+  },
+  {
+   "id": 7,
+   "type": "logs",
+   "title": "Только ошибки",
+   "description": "То же, но только строки, похожие на ошибку. Хорошее начало, когда что-то сломалось.",
+   "datasource": {
+    "type": "victoriametrics-logs-datasource",
+    "uid": "victorialogs"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "victoriametrics-logs-datasource",
+      "uid": "victorialogs"
+     },
+     "expr": "kubernetes.pod_namespace:~\"${namespace:regex}\" ${search:raw} (level:in(\"error\", \"ERROR\", \"fatal\", \"FATAL\", \"panic\") or _msg:~\"(?i)\\\\b(error|exception|fatal|panic)\\\\b\")",
+     "queryType": "instant",
+     "maxLines": 500,
+     "editorMode": "code"
+    }
+   ],
+   "options": {
+    "showTime": true,
+    "wrapLogMessage": true,
+    "sortOrder": "Descending",
+    "enableLogDetails": true,
+    "dedupStrategy": "none",
+    "prettifyLogMessage": false
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 26,
+    "w": 24,
+    "h": 12
+   }
+  },
+  {
+   "id": 8,
+   "type": "row",
+   "title": "События Kubernetes",
+   "collapsed": false,
+   "gridPos": {
+    "x": 0,
+    "y": 38,
+    "w": 24,
+    "h": 1
+   },
+   "panels": []
+  },
+  {
+   "id": 9,
+   "type": "logs",
+   "title": "Предупреждения Kubernetes",
+   "description": "События уровня Warning: образ не скачался, под не помещается, проба не проходит, том не подключился. Kubernetes хранит их час; здесь — 14 дней.",
+   "datasource": {
+    "type": "victoriametrics-logs-datasource",
+    "uid": "victorialogs"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "victoriametrics-logs-datasource",
+      "uid": "victorialogs"
+     },
+     "expr": "kubernetes.container_name:=\"event-exporter\" type:=\"Warning\"",
+     "queryType": "instant",
+     "maxLines": 300,
+     "editorMode": "code"
+    }
+   ],
+   "options": {
+    "showTime": true,
+    "wrapLogMessage": true,
+    "sortOrder": "Descending",
+    "enableLogDetails": true,
+    "dedupStrategy": "none",
+    "prettifyLogMessage": false
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 39,
+    "w": 24,
+    "h": 10
+   }
+  }
+ ],
+ "templating": {
+  "list": [
+   {
+    "name": "namespace",
+    "label": "Namespace",
+    "type": "query",
+    "datasource": {
+     "type": "victoriametrics-logs-datasource",
+     "uid": "victorialogs"
+    },
+    "query": {
+     "type": "fieldValue",
+     "field": "kubernetes.pod_namespace",
+     "query": "*",
+     "limit": 100,
+     "refId": "namespace"
+    },
+    "includeAll": true,
+    "allValue": "*",
+    "multi": false,
+    "current": {
+     "text": "All",
+     "value": "$__all"
+    },
+    "refresh": 2,
+    "sort": 1
+   },
+   {
+    "name": "search",
+    "label": "Текст",
+    "type": "textbox",
+    "query": "",
+    "current": {
+     "text": "",
+     "value": ""
+    }
+   }
+  ]
+ },
+ "annotations": {
+  "list": [
+   {
+    "builtIn": 1,
+    "type": "dashboard",
+    "name": "Annotations & Alerts",
+    "datasource": {
+     "type": "grafana",
+     "uid": "-- Grafana --"
+    },
+    "enable": true,
+    "hide": true,
+    "iconColor": "rgba(0, 211, 255, 1)"
+   },
+   {
+    "name": "Релиз",
+    "enable": true,
+    "iconColor": "green",
+    "datasource": {
+     "type": "prometheus",
+     "uid": "VictoriaMetrics"
+    },
+    "expr": "max by (revision) (flux_resource_info{kind=\"GitRepository\", exported_namespace=\"flux-system\", name=\"flux-system\"}) unless max by (revision) (flux_resource_info{kind=\"GitRepository\", exported_namespace=\"flux-system\", name=\"flux-system\"} offset 2m)",
+    "step": "60s",
+    "titleFormat": "Релиз",
+    "textFormat": "main → {{revision}}",
+    "useValueForTime": false
+   }
+  ]
+ }
+}
