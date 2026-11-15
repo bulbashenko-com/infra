@@ -54,7 +54,7 @@ files=$(git diff --name-only origin/main origin/dev)
 # What staging already ran: apps/staging and the shared apps/base. Docs and the CI tooling (live on dev already)
 # and repo metadata (dotfiles) are not deployed. Everything else first takes effect in production with this
 # release; list it by directory.
-prod_only=$(grep -vE '^(apps/staging/|apps/base/|\.github/|scripts/|docs/|justfile$|\.[^/]+$|.*\.md$)' <<<"$files" |
+prod_only=$(grep -vE '^(apps/staging/|apps/base/|\.github/|scripts/|docs/|justfile$|renovate[^/]*\.json$|\.[^/]+$|.*\.md$)' <<<"$files" |
   awk -F/ '{ print (NF > 2 ? $1 "/" $2 "/" : NF == 2 ? $1 "/" : $0) }' | sort -u || true)
 # auth's production pin (clusters/hel1/auth.yaml) moves together with the staging one, and that version passed
 # staging's e2e: when only pin lines changed there, it is not untested.
