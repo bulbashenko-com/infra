@@ -9,7 +9,7 @@ spec:
   interval: 10m
   url: https://github.com/bulbashenko-com/auth.git
   ref:
-    commit: 3505fc3764693a6229f0bd7fe3c55e6b8a644d75
+    commit: 5b5e93e4a7a6c9c2287e08a5c6703b31dc207e0a
   ignore: |
     /*
     !/kustomization.yaml
@@ -42,7 +42,7 @@ spec:
   timeout: 10m
   images:
     - name: ghcr.io/bulbashenko-com/auth-ui
-      newTag: 3505fc3764693a6229f0bd7fe3c55e6b8a644d75
+      newTag: 5b5e93e4a7a6c9c2287e08a5c6703b31dc207e0a
 ---
 # The e2e suite against the stack above, after it: Flux starts it only once `auth` is ready, and the Job itself waits
 # for the auth commit its image was built from. Its manifests live here (./e2e) and are read from dev (infra-dev), so
@@ -75,4 +75,4 @@ spec:
   timeout: 30m
   images:
     - name: ghcr.io/bulbashenko-com/auth-e2e
-      newTag: 3505fc3764693a6229f0bd7fe3c55e6b8a644d75
+      newTag: 5b5e93e4a7a6c9c2287e08a5c6703b31dc207e0a
