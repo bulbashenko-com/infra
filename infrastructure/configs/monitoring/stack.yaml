@@ -159,7 +159,7 @@ spec:
           - name: telegram
             telegram_configs:
               - bot_token_file: /etc/vm/secrets/telegram/token
-                chat_id: 0 # set by `just telegram`
+                chat_id: -4765757619 # set by `just telegram`
                 parse_mode: HTML
                 send_resolved: true
                 message: '{{ template "telegram.message" . }}'
@@ -167,7 +167,7 @@ spec:
           - name: telegram-events
             telegram_configs:
               - bot_token_file: /etc/vm/secrets/telegram/token
-                chat_id: 0 # set by `just telegram`
+                chat_id: -4765757619 # set by `just telegram`
                 parse_mode: HTML
                 send_resolved: false
                 message: '{{ template "telegram.message" . }}'
