@@ -47,6 +47,17 @@ jobs:
             echo "== $d"; kubectl kustomize "$d" > /dev/null
           done
 
+  dashboards:
+    name: dashboards
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: the Grafana JSON matches its generator (scripts/dashboards)
+        run: |
+          python3 -m scripts.dashboards infrastructure/configs/monitoring/dashboards
+          git diff --exit-code -- infrastructure/configs/monitoring/dashboards || {
+            echo "::error::regenerate: python3 -m scripts.dashboards infrastructure/configs/monitoring/dashboards"; exit 1; }
+
   yaml:
     name: yaml
     runs-on: ubuntu-latest
