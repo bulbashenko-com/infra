@@ -92,7 +92,10 @@ jobs:
           fetch-depth: 0
       - uses: home-operations/flate/action@v0.6.5
       - name: Render
-        run: flate test all --path .
+        # The action sets FLATE_BASE (change-aware mode); render everything instead.
+        run: |
+          unset FLATE_BASE
+          flate test all --path .
       - name: Diff for the pull request
         if: github.event_name == 'pull_request'
         env:
@@ -100,9 +103,11 @@ jobs:
           BASE: ${{ github.base_ref }}
           PR: ${{ github.event.pull_request.number }}
         run: |
-          set -uo pipefail
-          git worktree add -q ../baseline "origin/$BASE"
-          diff=$(flate diff all --path . --path-orig ../baseline -o github 2>diff.err); rc=$?
+          set +e -uo pipefail
+          unset FLATE_BASE
+          git worktree add -q ../baseline "origin/$BASE" || exit 1
+          diff=$(flate diff all --path . --path-orig ../baseline -o github 2>diff.err)
+          rc=$?
           {
             echo "<!-- flate-diff -->"
             echo "### Что изменится в кластере (\`$BASE\` → этот PR)"
