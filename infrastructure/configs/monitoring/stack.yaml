@@ -131,6 +131,14 @@ spec:
             installationId: $GITHUB_APP_INSTALLATION_ID
           secureJsonData:
             privateKey: $GITHUB_APP_PRIVATE_KEY
+        # Logs of every pod and the cluster's events (infrastructure/configs/logging).
+        - name: VictoriaLogs
+          uid: victorialogs
+          type: victoriametrics-logs-datasource
+          access: proxy
+          url: http://victorialogs-server.logging.svc.cluster.local:9428
+          jsonData:
+            maxLines: 1000
 
     grafana:
       fullnameOverride: grafana
@@ -167,6 +175,7 @@ spec:
       # Installed at every pod start (no PVC). Official, signed plugin.
       plugins:
         - grafana-github-datasource@2.9.3
+        - victoriametrics-logs-datasource@0.33.1
       sidecar:
         dashboards:
           # Dashboards from this directory land in their own folder (see grafana-dashboards in kustomization.yaml).

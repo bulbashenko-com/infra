@@ -1,0 +1,42 @@
+# vlagent on every node: tails the container logs under /var/log/pods and ships them to VictoriaLogs, with the pod's
+# namespace, name, container and labels as fields (streams: namespace/pod/container).
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: victoria-logs-collector
+  namespace: logging
+spec:
+  interval: 12h
+  url: oci://ghcr.io/victoriametrics/helm-charts/victoria-logs-collector
+  ref:
+    tag: 0.3.8
+  layerSelector:
+    mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
+    operation: copy
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: collector
+  namespace: logging
+spec:
+  interval: 1h
+  timeout: 10m
+  dependsOn:
+    - name: victorialogs
+  chartRef:
+    kind: OCIRepository
+    name: victoria-logs-collector
+  values:
+    fullnameOverride: logs-collector
+    remoteWrite:
+      - url: http://victorialogs-server.logging.svc.cluster.local:9428
+    resources:
+      requests: { cpu: 20m, memory: 64Mi }
+      limits: { memory: 192Mi }
+    # Every node, the control plane included (it is only PreferNoSchedule-tainted, but be explicit).
+    tolerations:
+      - operator: Exists
+    podMonitor:
+      enabled: true
+      vm: true
