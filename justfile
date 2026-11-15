@@ -62,6 +62,10 @@ telegram token chat_id:
       --data-urlencode text="Бот подключён. Уведомления начнут приходить после следующего релиза." >/dev/null
     echo "done: PR on dev, test message sent"
 
+# one-time (owner, admin): make GitHub enforce the process (required checks, merge commits only); safe to re-run
+rulesets:
+    scripts/rulesets.sh
+
 # one-time: tokens, age keys and GitHub secrets for OpenTofu in CI (owner; see the script header)
 tofu-ci-bootstrap:
     scripts/tofu-ci-bootstrap.sh
