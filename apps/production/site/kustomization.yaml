@@ -16,9 +16,13 @@ resources:
 configMapGenerator:
   - name: site-env
     literals:
-      - S3_BUCKET=media
+      # Gallery and files: the Nextcloud Team folder `Site`, read-only as user `site` (password in the Secret), served
+      # to visitors by the app at MEDIA_PUBLIC_URL (route.yaml: DNS-only on hel1-edge, outside Cloudflare's proxy).
+      - NEXTCLOUD_URL=http://nextcloud.nextcloud.svc.cluster.local:8080
+      - NEXTCLOUD_PUBLIC_URL=https://cloud.bulbashenko.com
+      - NEXTCLOUD_USER=site
+      - NEXTCLOUD_ROOT=Site
       - MEDIA_PUBLIC_URL=https://media.bulbashenko.com
-      - SKULL_MANIFEST_URL=https://media.bulbashenko.com/skull/current.json
       - NEXT_PUBLIC_SITE_URL=https://bulbashenko.com
       # Read at run time by the sign-in flow (NEXT_PUBLIC_* is fixed at build time).
       - SITE_URL=https://bulbashenko.com
@@ -29,4 +33,4 @@ patches:
     patch: |
       - op: add
         path: /spec/template/metadata/annotations
-        value: { bulbashenko.com/secret-revision: "3" }
+        value: { bulbashenko.com/secret-revision: "4" }

@@ -1,0 +1,46 @@
+# One-time import of the site's gallery from Garage into the Team folder Site (media-import.sh). Waits for the Team
+# folder, so it may start before Nextcloud has restarted with the hook that makes it. Removed from git, together with
+# media-import-secret.sops.yaml, once production is checked.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: media-import
+spec:
+  backoffLimit: 4
+  activeDeadlineSeconds: 3600
+  template:
+    metadata:
+      labels:
+        bulbashenko.com/layer: app
+        bulbashenko.com/app: nextcloud
+    spec:
+      restartPolicy: OnFailure
+      securityContext:
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: import
+          image: alpine:3.22
+          command: ["/bin/sh", "/scripts/media-import.sh"]
+          envFrom:
+            - secretRef: { name: media-import }
+          env:
+            - name: NC_USER
+              valueFrom: { secretKeyRef: { name: nextcloud, key: nextcloud-username } }
+            - name: NC_PASSWORD
+              valueFrom: { secretKeyRef: { name: nextcloud, key: nextcloud-password } }
+          resources:
+            requests: { cpu: 10m, memory: 64Mi }
+            limits: { memory: 256Mi }
+          securityContext:
+            # Root only to install tools.
+            runAsUser: 0
+            allowPrivilegeEscalation: false
+          volumeMounts:
+            - { name: scripts, mountPath: /scripts }
+            # CA of the Postgres server certificate (DATABASE_URL: sslrootcert, verify-full).
+            - { name: internal-ca, mountPath: /etc/internal-ca, readOnly: true }
+      volumes:
+        - name: scripts
+          configMap: { name: media-import }
+        - name: internal-ca
+          configMap: { name: internal-ca }

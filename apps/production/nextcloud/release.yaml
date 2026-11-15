@@ -29,7 +29,7 @@ spec:
   values:
     # Bump when secret.sops.yaml changes: env from a Secret is read only at pod start.
     podAnnotations:
-      bulbashenko.com/secret-revision: "3"
+      bulbashenko.com/secret-revision: "4"
     podLabels: &labels
       bulbashenko.com/layer: app
       bulbashenko.com/app: nextcloud
@@ -59,6 +59,8 @@ spec:
             'overwritehost' => 'cloud.bulbashenko.com',
             'overwriteprotocol' => 'https',
             'overwrite.cli.url' => 'https://cloud.bulbashenko.com',
+            // The site reads its Team folder through the Service (apps/production/site).
+            'trusted_domains' => array ('cloud.bulbashenko.com', 'nextcloud.nextcloud.svc.cluster.local'),
             // cloudflared and Traefik run in the pod network.
             'trusted_proxies' => array ('10.42.0.0/16'),
             // SMB reports the mode from the mount options, not from chmod.
@@ -69,13 +71,16 @@ spec:
             'maintenance_window_start' => 1,
             // Container log instead of a file on the SMB share.
             'log_type' => 'errorlog',
+            // Previews for pictures of any size (the default skips files over 50 MB); memory per picture in MiB.
+            'preview_max_filesize_image' => -1,
+            'preview_max_memory' => 512,
           );
       hooks:
         # Runs on every start, so all of it is idempotent.
         before-starting: |-
           #!/bin/sh
           set -eu
-          for app in calendar contacts user_oidc; do
+          for app in calendar contacts user_oidc groupfolders files_external; do
             php occ app:getpath "$app" >/dev/null 2>&1 || php occ app:install --keep-disabled "$app"
             php occ app:enable "$app"
           done
@@ -98,11 +103,48 @@ spec:
             --group-whitelist-regex='/^cloud-users$/'
           # The owner's Ory login. Exists after the first sign-in; takes effect on the next start.
           if php occ user:info admin >/dev/null 2>&1; then php occ group:adduser admin admin; fi
+
+          # The site's media (bulbashenko-com/site docs/deployment.md): Team folder `Site`, the admin group writes,
+          # the local user `site` (the app) only reads. Gallery/ and Files/ inside are made by media-import.yaml.
+          php occ group:add site-reader >/dev/null 2>&1 || true
+          if php occ user:info site >/dev/null 2>&1; then
+            OC_PASS="$SITE_PASSWORD" php occ user:resetpassword --password-from-env site >/dev/null
+          else
+            OC_PASS="$SITE_PASSWORD" php occ user:add --password-from-env --display-name bulbashenko.com site
+          fi
+          php occ group:adduser site-reader site
+          folder=$(php occ groupfolders:list --output=json | php -r '
+            foreach (json_decode(stream_get_contents(STDIN), true) as $f) if ($f["mountPoint"] === "Site") echo $f["id"];')
+          [ -n "$folder" ] || folder=$(php occ groupfolders:create Site)
+          php occ groupfolders:group "$folder" admin read write share delete >/dev/null
+          php occ groupfolders:group "$folder" site-reader read >/dev/null
+
+          # Backups in Garage, read-only for the admin group (Garage key nextcloud-browse can only read).
+          mounts=$(php occ files_external:list --output=json)
+          for m in postgres:cnpg-backups volumes:restore; do
+            point="/Backups/${m%%:*}"; bucket="${m#*:}"
+            id=$(printf %s "$mounts" | php -r '
+              foreach (json_decode(stream_get_contents(STDIN), true) as $x) if ($x["mount_point"] === $argv[1]) echo $x["mount_id"];' "$point")
+            [ -n "$id" ] || id=$(php occ files_external:create "$point" amazons3 amazons3::accesskey \
+              -c bucket="$bucket" -c hostname=garage.data.svc.cluster.local -c port=3900 -c region=garage \
+              -c use_ssl=false -c use_path_style=true --applicable-group=admin --output=json)
+            php occ files_external:config "$id" key "$GARAGE_BROWSE_ID"
+            php occ files_external:config "$id" secret "$GARAGE_BROWSE_SECRET"
+            php occ files_external:option "$id" readonly true
+            php occ files_external:option "$id" previews false
+            php occ files_external:option "$id" enable_sharing false
+          done
       extraEnv:
         - name: OIDC_CLIENT_SECRET
           valueFrom: { secretKeyRef: { name: nextcloud, key: oidc-client-secret } }
         - name: NC_METRICS_TOKEN
           valueFrom: { secretKeyRef: { name: nextcloud, key: nextcloud-token } }
+        - name: SITE_PASSWORD
+          valueFrom: { secretKeyRef: { name: nextcloud, key: site-password } }
+        - name: GARAGE_BROWSE_ID
+          valueFrom: { secretKeyRef: { name: nextcloud, key: garage-browse-id } }
+        - name: GARAGE_BROWSE_SECRET
+          valueFrom: { secretKeyRef: { name: nextcloud, key: garage-browse-secret } }
     internalDatabase:
       enabled: false
     externalDatabase:

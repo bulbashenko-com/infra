@@ -44,29 +44,17 @@ allow() { # bucketId keyId [write=true|false]
   post /v2/AllowBucketKey "{\"bucketId\":\"$1\",\"accessKeyId\":\"$2\",\"permissions\":{\"read\":true,\"write\":${3:-true},\"owner\":false}}" >/dev/null
 }
 
-media=$(ensure_bucket media media.bulbashenko.com | tail -1)
-post "/v2/UpdateBucket?id=$media" '{"websiteAccess":{"enabled":true,"indexDocument":"index.html"}}' >/dev/null
-
-ensure_key app-media "$KEY_APP_MEDIA_ID" "$KEY_APP_MEDIA_SECRET"
-ensure_key ci-skull "$KEY_CI_SKULL_ID" "$KEY_CI_SKULL_SECRET"
-allow "$media" "$KEY_APP_MEDIA_ID"
-allow "$media" "$KEY_CI_SKULL_ID"
-
-# Staging copy of the site's media (apps/staging): filled by staging-refresh, served on the mesh only.
-media_staging=$(ensure_bucket media-staging media.bulbashenko.dev | tail -1)
-post "/v2/UpdateBucket?id=$media_staging" '{"websiteAccess":{"enabled":true,"indexDocument":"index.html"}}' >/dev/null
-ensure_key app-media-staging "$KEY_APP_MEDIA_STAGING_ID" "$KEY_APP_MEDIA_STAGING_SECRET"
-allow "$media_staging" "$KEY_APP_MEDIA_STAGING_ID"
+# The site's old media bucket. The gallery moved to Nextcloud (apps/production/nextcloud/media-import.yaml copies
+# what is still in use); nothing writes here any more, and a cleanup removes the bucket once that is verified.
+media=$(ensure_bucket media | tail -1)
 
 # Staging refresh (apps/staging-platform, apps/staging/site): production exports the site's content database into
-# staging-seed; staging restores it and mirrors media. Staging never gets a key to production's database.
+# staging-seed; staging restores it. Staging never gets a key to production's database.
 seed=$(ensure_bucket staging-seed | tail -1)
 ensure_key staging-export "$KEY_STAGING_EXPORT_ID" "$KEY_STAGING_EXPORT_SECRET"
 ensure_key staging-restore "$KEY_STAGING_RESTORE_ID" "$KEY_STAGING_RESTORE_SECRET"
 allow "$seed" "$KEY_STAGING_EXPORT_ID"
 allow "$seed" "$KEY_STAGING_RESTORE_ID" false
-allow "$media" "$KEY_STAGING_RESTORE_ID" false
-allow "$media_staging" "$KEY_STAGING_RESTORE_ID"
 
 # CNPG base backups and WAL (barman-cloud plugin), and a read-only key for the off-site copy.
 cnpg=$(ensure_bucket cnpg-backups | tail -1)
@@ -84,4 +72,11 @@ allow "$restore" "$KEY_OFFSITE_ID" false
 # Restore drills: off-site backups are copied back here and restored into a throw-away cluster.
 drill=$(ensure_bucket drill | tail -1)
 allow "$drill" "$KEY_RESTORE_ID"
+
+# Nextcloud shows the backups to the admin group (folder Backups, files_external) and imports the old gallery:
+# read-only, so nothing in Nextcloud can change or delete a backup.
+ensure_key nextcloud-browse "$KEY_NEXTCLOUD_BROWSE_ID" "$KEY_NEXTCLOUD_BROWSE_SECRET"
+allow "$cnpg" "$KEY_NEXTCLOUD_BROWSE_ID" false
+allow "$restore" "$KEY_NEXTCLOUD_BROWSE_ID" false
+allow "$media" "$KEY_NEXTCLOUD_BROWSE_ID" false
 echo "garage bootstrap done"
