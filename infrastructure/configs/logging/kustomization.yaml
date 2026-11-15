@@ -1,0 +1,14 @@
+# Logs of every pod and the cluster's events, kept 14 days in VictoriaLogs and searched in Grafana (dashboard
+# «Логи», datasource VictoriaLogs in ../monitoring/stack.yaml). README: Monitoring.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+labels:
+  - pairs:
+      bulbashenko.com/layer: platform
+      bulbashenko.com/app: logging
+    includeSelectors: false
+resources:
+  - namespace.yaml
+  - victorialogs.yaml
+  - collector.yaml
+  - events.yaml

@@ -14,6 +14,8 @@ spec:
     logs:
       access:
         enabled: true
+        # One JSON object per request, so the «Логи» dashboard can filter by host, status and duration.
+        format: json
     service:
       # Chart 40.x: the type lives under service.spec (a top-level service.type is ignored).
       spec:
