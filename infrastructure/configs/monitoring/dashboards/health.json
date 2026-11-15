@@ -715,7 +715,7 @@
    "id": 13,
    "type": "stat",
    "title": "Сертификаты, дней до конца",
-   "description": "Сколько дней до истечения ближайшего TLS-сертификата. cert-manager продлевает за 30 дней; меньше 14 — продление ломается.",
+   "description": "Сколько дней до истечения ближайшего TLS-сертификата. cert-manager продлевает за 30 дней; меньше 14 — продление ломается. Ещё не выпущенные сертификаты (метрика 0) не учитываются, их ловит алерт CertificateNotReady.",
    "datasource": {
     "type": "prometheus",
     "uid": "VictoriaMetrics"
@@ -727,7 +727,7 @@
       "type": "prometheus",
       "uid": "VictoriaMetrics"
      },
-     "expr": "min(certmanager_certificate_expiration_timestamp_seconds - time()) / 86400",
+     "expr": "(min(certmanager_certificate_expiration_timestamp_seconds > 0) - time()) / 86400",
      "instant": true
     }
    ],

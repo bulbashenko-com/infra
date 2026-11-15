@@ -45,9 +45,10 @@ def build():
                "Когда бэкапы последний раз скопированы на Hetzner Storage Box (04:00). Больше 26 часов — копия "
                "не обновляется.", unit="h", thresholds=hours, decimals=1),
         d.stat("Сертификаты, дней до конца",
-               'min(certmanager_certificate_expiration_timestamp_seconds - time()) / 86400',
+               '(min(certmanager_certificate_expiration_timestamp_seconds > 0) - time()) / 86400',
                "Сколько дней до истечения ближайшего TLS-сертификата. cert-manager продлевает за 30 дней; меньше 14 — "
-               "продление ломается.", unit="d", decimals=0,
+               "продление ломается. Ещё не выпущенные сертификаты (метрика 0) не учитываются, их ловит алерт "
+               "CertificateNotReady.", unit="d", decimals=0,
                thresholds=steps((None, "red"), (14, "orange"), (21, "green"))),
         d.stat("Диск, свободно (худший узел)",
                'min(node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"})',
