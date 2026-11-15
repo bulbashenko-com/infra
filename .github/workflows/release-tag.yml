@@ -1,0 +1,102 @@
+# Every change that reaches main (a release, a hotfix, a rollback) gets a version and a page:
+#   1. tag vYYYY.MM.DD (.2, .3 ... for later ones that day) and a GitHub Release with the PR's description;
+#   2. a Telegram message "rolling out", then the watch: Flux posts prod/<kustomization> on this commit as each
+#      production Kustomization is applied and healthy (apps/staging-platform/notify.yaml);
+#   3. the verdict (applied in N minutes, or which part failed) goes into the Release and to Telegram.
+name: release-tag
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: read
+  statuses: read
+
+concurrency:
+  group: release-tag
+  cancel-in-progress: false
+
+jobs:
+  tag:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      tag: ${{ steps.release.outputs.tag }}
+      title: ${{ steps.release.outputs.title }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Tag and Release
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          git fetch -q --tags
+          base=v$(date -u +%Y.%m.%d) tag=$base n=1
+          while git rev-parse -q --verify "refs/tags/$tag" >/dev/null; do n=$((n + 1)); tag=$base.$n; done
+          # The PR this push merged (release, hotfix or rollback); a direct push has none.
+          pr=$(gh api "repos/$GITHUB_REPOSITORY/commits/$SHA/pulls" -q '[.[] | select(.base.ref == "main")][0] // empty')
+          if [ -n "$pr" ]; then
+            title=$(jq -r .title <<<"$pr"); number=$(jq -r .number <<<"$pr")
+            { jq -r '.body // ""' <<<"$pr"; echo; echo "PR: #$number"; } > notes.md
+          else
+            title=$(git log -1 --format=%s "$SHA"); git log -1 --format=%B "$SHA" > notes.md
+          fi
+          gh release create "$tag" --target "$SHA" --title "$tag — $title" --notes-file notes.md
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "title=$title" >> "$GITHUB_OUTPUT"
+          echo "### $tag — $title" >> "$GITHUB_STEP_SUMMARY"
+      - name: Telegram
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ vars.TELEGRAM_CHAT_ID }}
+          TAG: ${{ steps.release.outputs.tag }}
+          TITLE: ${{ steps.release.outputs.title }}
+        run: |
+          scripts/telegram.sh "🚀 <b>Релиз $TAG выкатывается</b>
+          $(sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g' <<<"$TITLE")
+          Обычно 2–5 минут. <a href=\"https://grafana.int.bulbashenko.com/d/rollout\">Выкатка</a> · <a href=\"$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/$TAG\">Релиз</a>"
+
+  watch:
+    needs: tag
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+      - name: Wait for Flux
+        id: watch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STARTED: ${{ github.event.head_commit.timestamp }}
+        run: scripts/release-watch.sh "$GITHUB_SHA" "$STARTED" 35
+      - name: Verdict into the Release and Telegram
+        if: always() && steps.watch.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ vars.TELEGRAM_CHAT_ID }}
+          TAG: ${{ needs.tag.outputs.tag }}
+          STATE: ${{ steps.watch.outputs.state }}
+          MINUTES: ${{ steps.watch.outputs.minutes }}
+          DETAILS: ${{ steps.watch.outputs.details }}
+        run: |
+          set -euo pipefail
+          url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/$TAG"
+          case $STATE in
+            success) head="✅ <b>Релиз $TAG применён</b> за $MINUTES мин"; line="Применён в prod за $MINUTES мин." ;;
+            failure) head="🔴 <b>Релиз $TAG: ошибка выкатки</b>"; line="Ошибка выкатки (через $MINUTES мин). Откатить: Actions → rollback, тег предыдущего релиза (docs/workflow.md, «Откат»)." ;;
+            *)       head="🟡 <b>Релиз $TAG: Flux не подтвердил за $MINUTES мин</b>"; line="Flux не подтвердил выкатку за $MINUTES мин: смотри дашборд «Выкатка»." ;;
+          esac
+          gh release view "$TAG" --json body -q .body > notes.md
+          { echo; echo "---"; echo "**Итог:** $line"; echo; sed 's/^/- /' <<<"$DETAILS"; } >> notes.md
+          gh release edit "$TAG" --notes-file notes.md
+          scripts/telegram.sh "$head
+          $DETAILS
+          <a href=\"https://grafana.int.bulbashenko.com/d/rollout\">Выкатка</a> · <a href=\"$url\">Релиз</a>"

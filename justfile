@@ -92,6 +92,11 @@ promote app sha="":
 promote-dry app sha="":
     DRY_RUN=1 scripts/promote.sh {{app}} {{sha}}
 
+# production back to an earlier release tag: opens the rollback PR (the owner merges it); docs/workflow.md "Откат"
+rollback tag:
+    gh workflow run rollback.yml -f tag={{tag}}
+    @echo "rollback PR for {{tag}} is being opened: https://github.com/bulbashenko-com/infra/pulls"
+
 # refresh staging from production's latest content export: bumps REVISION on dev through an auto-merging PR
 staging-refresh:
     #!/usr/bin/env bash
