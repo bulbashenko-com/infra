@@ -6,6 +6,6 @@ images:
   # The one pin for both environments (the app and its migrations, same commit), changed by scripts/promote.sh on
   # dev: staging runs it at once, production with the next release (dev -> main).
   - name: ghcr.io/bulbashenko-com/site
-    newTag: 0452787dfe6cd1379e790027d2bc804854772897
+    newTag: 391d1e1d14a15b8bbacb57bef39de08b34a00f30
   - name: ghcr.io/bulbashenko-com/site-migrate
-    newTag: 0452787dfe6cd1379e790027d2bc804854772897
+    newTag: 391d1e1d14a15b8bbacb57bef39de08b34a00f30
