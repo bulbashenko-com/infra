@@ -31,6 +31,9 @@ configMapGenerator:
       - SKULL_MANIFEST_URL=https://media.bulbashenko.dev/skull/current.json
       # Build-time NEXT_PUBLIC_* in the client bundle still say bulbashenko.com (one image for both).
       - NEXT_PUBLIC_SITE_URL=https://bulbashenko.dev
+      # Read at run time by the sign-in flow: the callback URL staging sends to its SSO (NEXT_PUBLIC_* is fixed at
+      # build time and says bulbashenko.com).
+      - SITE_URL=https://bulbashenko.dev
       - OIDC_ISSUER=https://auth.bulbashenko.dev
   - name: staging-refresh
     files:
