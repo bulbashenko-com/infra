@@ -116,7 +116,7 @@
    "id": 4,
    "type": "table",
    "title": "Версии: прод и staging",
-   "description": "Короткий коммит (или версия чарта), который сейчас работает. Разные значения в строке — на staging уже новая версия, в прод она попадёт с релизом. У конфига кластера коммиты всегда разные (у main свои merge-коммиты), это нормально.",
+   "description": "Короткий коммит (или версия чарта), который сейчас работает. У одного приложения разные коммиты в проде и на staging — на staging уже новая версия, в прод она попадёт с релизом. У конфига кластера коммиты всегда разные (у main свои merge-коммиты), это нормально. Клик по версии — коммит в GitHub.",
    "datasource": {
     "type": "prometheus",
     "uid": "VictoriaMetrics"
@@ -128,7 +128,7 @@
       "type": "prometheus",
       "uid": "VictoriaMetrics"
      },
-     "expr": "label_replace(label_replace(label_replace(max by (image) (kube_pod_container_info{namespace=\"site\", container=\"site\"}), \"version\", \"$1\", \"image\", \".*:([0-9a-f]{7})[0-9a-f]*$\"), \"app\", \"Сайт\", \"\", \"\"), \"env\", \"prod\", \"\", \"\") or label_replace(label_replace(label_replace(max by (image) (kube_pod_container_info{namespace=\"site-staging\", container=\"site\"}), \"version\", \"$1\", \"image\", \".*:([0-9a-f]{7})[0-9a-f]*$\"), \"app\", \"Сайт\", \"\", \"\"), \"env\", \"staging\", \"\", \"\") or label_replace(label_replace(label_replace(max by (revision) (flux_resource_info{kind=\"Kustomization\", exported_namespace=\"flux-system\", name=\"auth\"}), \"version\", \"$1\", \"revision\", \".*sha1:([0-9a-f]{7}).*\"), \"app\", \"Вход (SSO)\", \"\", \"\"), \"env\", \"prod\", \"\", \"\") or label_replace(label_replace(label_replace(max by (revision) (flux_resource_info{kind=\"Kustomization\", exported_namespace=\"auth-staging\", name=\"auth\"}), \"version\", \"$1\", \"revision\", \".*sha1:([0-9a-f]{7}).*\"), \"app\", \"Вход (SSO)\", \"\", \"\"), \"env\", \"staging\", \"\", \"\") or label_replace(label_replace(label_replace(max by (revision) (flux_resource_info{kind=\"Kustomization\", exported_namespace=\"flux-system\", name=\"mail\"}), \"version\", \"$1\", \"revision\", \".*sha1:([0-9a-f]{7}).*\"), \"app\", \"Почта\", \"\", \"\"), \"env\", \"prod\", \"\", \"\") or label_replace(label_replace(label_replace(max by (revision) (flux_resource_info{kind=\"Kustomization\", exported_namespace=\"flux-system\", name=\"teamspeak\"}), \"version\", \"$1\", \"revision\", \".*sha1:([0-9a-f]{7}).*\"), \"app\", \"TeamSpeak\", \"\", \"\"), \"env\", \"prod\", \"\", \"\") or label_replace(label_replace(label_replace(max by (revision) (flux_resource_info{kind=\"HelmRelease\", exported_namespace=\"nextcloud\", name=\"nextcloud\"}), \"version\", \"$1\", \"revision\", \"(.*)\"), \"app\", \"Облако\", \"\", \"\"), \"env\", \"prod\", \"\", \"\") or label_replace(label_replace(label_replace(max by (revision) (flux_resource_info{kind=\"GitRepository\", exported_namespace=\"flux-system\", name=\"flux-system\"}), \"version\", \"$1\", \"revision\", \".*sha1:([0-9a-f]{7}).*\"), \"app\", \"Конфиг кластера (infra)\", \"\", \"\"), \"env\", \"prod\", \"\", \"\") or label_replace(label_replace(label_replace(max by (revision) (flux_resource_info{kind=\"GitRepository\", exported_namespace=\"flux-system\", name=\"infra-dev\"}), \"version\", \"$1\", \"revision\", \".*sha1:([0-9a-f]{7}).*\"), \"app\", \"Конфиг кластера (infra)\", \"\", \"\"), \"env\", \"staging\", \"\", \"\")",
+     "expr": "max by (app, env, version, repo, sha) (label_replace(label_replace(label_replace(label_replace(label_replace(max by (image) (kube_pod_container_info{namespace=\"site\", container=\"site\"}), \"version\", \"$1\", \"image\", \".*:([0-9a-f]{7})[0-9a-f]*$\"), \"app\", \"Сайт\", \"\", \"\"), \"env\", \"прод\", \"\", \"\"), \"repo\", \"site\", \"\", \"\"), \"sha\", \"$1\", \"image\", \".*:([0-9a-f]{40})$\") or label_replace(label_replace(label_replace(label_replace(label_replace(max by (image) (kube_pod_container_info{namespace=\"site-staging\", container=\"site\"}), \"version\", \"$1\", \"image\", \".*:([0-9a-f]{7})[0-9a-f]*$\"), \"app\", \"Сайт\", \"\", \"\"), \"env\", \"staging\", \"\", \"\"), \"repo\", \"site\", \"\", \"\"), \"sha\", \"$1\", \"image\", \".*:([0-9a-f]{40})$\") or label_replace(label_replace(label_replace(label_replace(label_replace(max by (revision) (flux_resource_info{kind=\"Kustomization\", exported_namespace=\"flux-system\", name=\"auth\"}), \"version\", \"$1\", \"revision\", \".*sha1:([0-9a-f]{7}).*\"), \"app\", \"Вход (SSO)\", \"\", \"\"), \"env\", \"прод\", \"\", \"\"), \"repo\", \"auth\", \"\", \"\"), \"sha\", \"$1\", \"revision\", \".*sha1:([0-9a-f]{40}).*\") or label_replace(label_replace(label_replace(label_replace(label_replace(max by (revision) (flux_resource_info{kind=\"Kustomization\", exported_namespace=\"auth-staging\", name=\"auth\"}), \"version\", \"$1\", \"revision\", \".*sha1:([0-9a-f]{7}).*\"), \"app\", \"Вход (SSO)\", \"\", \"\"), \"env\", \"staging\", \"\", \"\"), \"repo\", \"auth\", \"\", \"\"), \"sha\", \"$1\", \"revision\", \".*sha1:([0-9a-f]{40}).*\") or label_replace(label_replace(label_replace(label_replace(label_replace(max by (revision) (flux_resource_info{kind=\"Kustomization\", exported_namespace=\"flux-system\", name=\"mail\"}), \"version\", \"$1\", \"revision\", \".*sha1:([0-9a-f]{7}).*\"), \"app\", \"Почта\", \"\", \"\"), \"env\", \"прод\", \"\", \"\"), \"repo\", \"mail\", \"\", \"\"), \"sha\", \"$1\", \"revision\", \".*sha1:([0-9a-f]{40}).*\") or label_replace(label_replace(label_replace(label_replace(label_replace(max by (revision) (flux_resource_info{kind=\"Kustomization\", exported_namespace=\"flux-system\", name=\"teamspeak\"}), \"version\", \"$1\", \"revision\", \".*sha1:([0-9a-f]{7}).*\"), \"app\", \"TeamSpeak\", \"\", \"\"), \"env\", \"прод\", \"\", \"\"), \"repo\", \"teamspeak\", \"\", \"\"), \"sha\", \"$1\", \"revision\", \".*sha1:([0-9a-f]{40}).*\") or label_replace(label_replace(label_replace(label_replace(max by (revision) (flux_resource_info{kind=\"HelmRelease\", exported_namespace=\"nextcloud\", name=\"nextcloud\"}), \"version\", \"$1\", \"revision\", \"(.*)\"), \"app\", \"Облако (версия чарта)\", \"\", \"\"), \"env\", \"прод\", \"\", \"\"), \"repo\", \"\", \"\", \"\") or label_replace(label_replace(label_replace(label_replace(label_replace(max by (revision) (flux_resource_info{kind=\"GitRepository\", exported_namespace=\"flux-system\", name=\"flux-system\"}), \"version\", \"$1\", \"revision\", \".*sha1:([0-9a-f]{7}).*\"), \"app\", \"Конфиг кластера (infra)\", \"\", \"\"), \"env\", \"прод\", \"\", \"\"), \"repo\", \"infra\", \"\", \"\"), \"sha\", \"$1\", \"revision\", \".*sha1:([0-9a-f]{40}).*\") or label_replace(label_replace(label_replace(label_replace(label_replace(max by (revision) (flux_resource_info{kind=\"GitRepository\", exported_namespace=\"flux-system\", name=\"infra-dev\"}), \"version\", \"$1\", \"revision\", \".*sha1:([0-9a-f]{7}).*\"), \"app\", \"Конфиг кластера (infra)\", \"\", \"\"), \"env\", \"staging\", \"\", \"\"), \"repo\", \"infra\", \"\", \"\"), \"sha\", \"$1\", \"revision\", \".*sha1:([0-9a-f]{40}).*\"))",
      "instant": true,
      "format": "table"
     }
@@ -143,48 +143,85 @@
       "align": "left"
      }
     },
-    "overrides": []
+    "overrides": [
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "Версия"
+      },
+      "properties": [
+       {
+        "id": "links",
+        "value": [
+         {
+          "title": "Открыть коммит в GitHub",
+          "url": "https://github.com/bulbashenko-com/${__data.fields.repo}/commit/${__data.fields.sha}",
+          "targetBlank": true
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "repo"
+      },
+      "properties": [
+       {
+        "id": "custom.hidden",
+        "value": true
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "sha"
+      },
+      "properties": [
+       {
+        "id": "custom.hidden",
+        "value": true
+       }
+      ]
+     }
+    ]
    },
    "options": {
     "showHeader": true,
     "cellHeight": "sm",
-    "sortBy": []
+    "sortBy": [
+     {
+      "displayName": "Что",
+      "desc": false
+     }
+    ]
    },
    "transformations": [
-    {
-     "id": "groupingToMatrix",
-     "options": {
-      "columnField": "env",
-      "rowField": "app",
-      "valueField": "version",
-      "emptyValue": "empty"
-     }
-    },
-    {
-     "id": "organize",
-     "options": {
-      "renameByName": {
-       "app\\env": "app"
-      }
-     }
-    },
     {
      "id": "organize",
      "options": {
       "includeByName": {
        "app": true,
-       "prod": true,
-       "staging": true
+       "env": true,
+       "version": true,
+       "repo": true,
+       "sha": true
       },
       "indexByName": {
        "app": 0,
-       "prod": 1,
-       "staging": 2
+       "env": 1,
+       "version": 2,
+       "repo": 3,
+       "sha": 4
       },
       "renameByName": {
        "app": "Что",
-       "prod": "Прод",
-       "staging": "Staging"
+       "env": "Где",
+       "version": "Версия",
+       "repo": "repo",
+       "sha": "sha"
       }
      }
     }
