@@ -9,3 +9,4 @@ resources:
   - monitoring
   - logging
   - system-namespaces.yaml
+  - coredns-custom.yaml

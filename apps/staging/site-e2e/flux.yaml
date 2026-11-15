@@ -1,0 +1,31 @@
+# One run per site version, after the staging site and the SSO are up: the Job waits until bulbashenko.dev reports the
+# commit its image was built from (/api/health). Read from dev (infra-dev), so Flux posts the result as the commit
+# status staging/site-e2e on the dev commit it tested; merging the release PR into main requires it
+# (apps/staging-platform/notify.yaml). The image tag is the site pin, moved by scripts/promote.sh.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: site-e2e
+spec:
+  interval: 10m
+  dependsOn:
+    - name: auth
+  sourceRef:
+    kind: GitRepository
+    name: infra-dev
+    namespace: flux-system
+  path: ./apps/staging/site-e2e/job
+  targetNamespace: auth-staging
+  serviceAccountName: staging-reconciler
+  commonMetadata:
+    labels:
+      bulbashenko.com/layer: app
+      bulbashenko.com/app: site
+      bulbashenko.com/env: staging
+  prune: true
+  # A run takes about two minutes, waiting for the rollout included.
+  wait: true
+  timeout: 15m
+  images:
+    - name: ghcr.io/bulbashenko-com/site-e2e
+      newTag: f1476f286542957d135fb606ff80cad840359fbe

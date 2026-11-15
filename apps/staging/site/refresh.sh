@@ -1,7 +1,8 @@
 #!/bin/sh
 # Staging side of the refresh: restore the content dump that production exports nightly (apps/staging-platform)
 # into bulbashenko_staging, and mirror the media bucket. Admin sessions are not in the dump; everything else the
-# site stores is replaced. Two containers sharing /work: fetch (rclone), then restore (pg_restore).
+# site stores is replaced. Containers sharing /work: fetch (rclone), restore (pg_restore), then the site's own
+# migrate image brings the restored schema to staging's version (refresh.yaml).
 # Runs nightly at 03:15 UTC (CronJob) and whenever REVISION in kustomization.yaml changes (`just staging-refresh`).
 set -eu
 case "$1" in
