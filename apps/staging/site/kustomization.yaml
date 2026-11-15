@@ -22,7 +22,7 @@ images:
   # The refresh migrates the restored data to staging's version; same commit as the site (apps/base/site), moved
   # together by scripts/promote.sh.
   - name: ghcr.io/bulbashenko-com/site-migrate
-    newTag: f1476f286542957d135fb606ff80cad840359fbe
+    newTag: 4eda8cb90de9abebe0d1fb3d79353a300344d073
 configMapGenerator:
   - name: site-env
     literals:
