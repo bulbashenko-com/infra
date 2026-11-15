@@ -26,6 +26,7 @@ the production Ory session cookie (domain `bulbashenko.com`) away from staging c
   commit as production (`promote.sh` moves both pins). Own databases and keys, OIDC clients for the staging site and
   the e2e apps, mailpit, and an `admin` account seeded once (the Job `seed-admin` logs its recovery link).
 - **Release gate.** Each auth version runs the e2e suite in staging (Job `e2e` in its own Kustomization `auth-e2e`,
-  started after the stack's is ready on the same commit). Flux reports the result to infra (`apps/staging-platform/notify.yaml`, deploy App), and
-  `.github/workflows/staging-gate.yml` sets the status `staging/e2e` on dev, which merging into main requires.
+  manifests in `auth/e2e/`, read from dev, started after the stack's is ready on the same commit). Flux posts the
+  result as the commit status `staging/auth-e2e` on the dev commit it tested (`apps/staging-platform/notify.yaml`,
+  deploy App); merging the release PR into main requires it. Hotfix PRs get it from `.github/workflows/staging-gate.yml`.
 - Names resolve through Headscale (extra records plus a split route for `bulbashenko.dev`).
