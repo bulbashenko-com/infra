@@ -21,3 +21,39 @@ spec:
     regex: ^https?://www\.bulbashenko\.com/(.*)
     replacement: https://bulbashenko.com/${1}
     permanent: true
+---
+# Gallery and files (the app's /m/ route): DNS-only to hel1-edge, so video and large files never pass Cloudflare's
+# proxy (its free plan's terms keep them off the CDN). Traefik on that node terminates TLS; only /m/ is routed.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: media
+spec:
+  secretName: media-tls
+  issuerRef: { kind: ClusterIssuer, name: letsencrypt }
+  dnsNames: [media.bulbashenko.com]
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: media
+spec:
+  entryPoints: [websecure]
+  routes:
+    - match: Host(`media.bulbashenko.com`) && PathPrefix(`/m/`)
+      middlewares: [{ name: media-inflight }]
+      services: [{ name: site, port: 3000 }]
+  tls:
+    secretName: media-tls
+---
+# One address can't hold more than this many requests open at once (a long download keeps one open; a gallery
+# page loads its thumbnails in parallel, so not much lower).
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: media-inflight
+spec:
+  inFlightReq:
+    amount: 64
+    sourceCriterion:
+      ipStrategy: { depth: 0 }

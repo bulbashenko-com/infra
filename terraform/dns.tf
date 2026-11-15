@@ -93,24 +93,28 @@ resource "cloudflare_dns_record" "mail_a" {
   zone_id = var.cloudflare_zone_id
 }
 
+# The site's gallery and files (apps/production/site/route.yaml). DNS-only on purpose: Cloudflare's free plan keeps
+# video and large files off its proxy, so Traefik on hel1-edge serves them directly.
 resource "cloudflare_dns_record" "media" {
-  comment = "[storage] Garage website endpoint: media bucket"
-  content = local.tunnel_cname
+  comment = "[web] site media (gallery, files) on hel1-edge (must not be proxied)"
+  content = "62.238.18.202"
   name    = "media.bulbashenko.com"
-  proxied = true
-  ttl     = 1
-  type    = "CNAME"
+  proxied = false
+  ttl     = 300
+  type    = "A"
   zone_id = var.cloudflare_zone_id
 }
 
-resource "cloudflare_dns_record" "s3" {
-  comment = "[storage] Garage S3 API"
-  content = local.tunnel_cname
-  name    = "s3.bulbashenko.com"
-  proxied = true
-  ttl     = 1
-  type    = "CNAME"
+resource "cloudflare_dns_record" "media_aaaa" {
+  comment = "[web] site media (gallery, files) on hel1-edge (must not be proxied)"
+  content = "2a01:4f9:c012:b6f5::1"
+  name    = "media.bulbashenko.com"
+  proxied = false
+  ttl     = 300
+  type    = "AAAA"
   zone_id = var.cloudflare_zone_id
+  # Until the old CNAME of this name is gone, an AAAA next to it is refused.
+  depends_on = [cloudflare_dns_record.media]
 }
 
 resource "cloudflare_dns_record" "ts_a" {

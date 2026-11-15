@@ -76,7 +76,7 @@ spec:
           labels: { severity: critical }
           annotations:
             summary: "Garage нездоров"
-            description: "cluster_healthy = 0: часть узлов или разделов недоступна. Медиа сайта и бэкапы CNPG под угрозой."
+            description: "cluster_healthy = 0: часть узлов или разделов недоступна. Бэкапы CNPG под угрозой."
         - alert: GarageNodeDisconnected
           expr: min(cluster_connected_nodes) < 3
           for: 10m
@@ -84,6 +84,15 @@ spec:
           annotations:
             summary: "Garage: на связи {{ $value }} из 3 узлов"
             description: "RF3 держится, но запаса больше нет."
+        # Nextcloud's free space is the Storage Box's (one quota for its files, the off-site backups and their
+        # snapshots). Snapshots keep deleted files for 7 days, so space comes back only slowly.
+        - alert: StorageBoxLowSpace
+          expr: min(nextcloud_free_space_bytes) < 100 * 1024 * 1024 * 1024
+          for: 30m
+          labels: { severity: warning }
+          annotations:
+            summary: "Storage Box: свободно {{ $value | humanize1024 }}B"
+            description: "Меньше 100 ГиБ. Там файлы Nextcloud (в том числе медиа сайта) и off-site бэкапы; удалённое освобождается только после ротации снапшотов (7 дней)."
 
     - name: bulbashenko.edge
       rules:
@@ -93,7 +102,7 @@ spec:
           labels: { severity: critical }
           annotations:
             summary: "Туннель Cloudflare без соединений"
-            description: "Ни один под cloudflared не держит соединение: bulbashenko.com, auth, media и s3 недоступны снаружи."
+            description: "Ни один под cloudflared не держит соединение: bulbashenko.com, auth и cloud недоступны снаружи."
         - alert: CloudflaredPodNoConnections
           expr: max by (pod) (cloudflared_tunnel_ha_connections) < 1
           for: 10m

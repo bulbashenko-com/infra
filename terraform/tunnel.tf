@@ -26,8 +26,6 @@ locals {
     "bulbashenko.com",
     "www.bulbashenko.com",
     "auth.bulbashenko.com",
-    "media.bulbashenko.com",
-    "s3.bulbashenko.com",
     "autoconfig.bulbashenko.com",
     "autodiscover.bulbashenko.com",
     "cloud.bulbashenko.com",

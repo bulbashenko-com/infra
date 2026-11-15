@@ -83,7 +83,6 @@ dns:
     # Staging, same Traefik.
     - {name: "bulbashenko.dev", type: "A", value: "100.64.0.5"}
     - {name: "auth.bulbashenko.dev", type: "A", value: "100.64.0.5"}
-    - {name: "media.bulbashenko.dev", type: "A", value: "100.64.0.5"}
     - {name: "users.int.bulbashenko.dev", type: "A", value: "100.64.0.5"}
     - {name: "mailpit.int.bulbashenko.dev", type: "A", value: "100.64.0.5"}
 
