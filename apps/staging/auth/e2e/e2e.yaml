@@ -23,10 +23,11 @@ spec:
       # Not next to production's databases and mail (hel1-core): a browser run must not starve them.
       affinity:
         nodeAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-            - weight: 100
-              preference:
-                matchExpressions:
+          # Required, not preferred: with a preference the scheduler still picked hel1-core, where the 2 GB
+          # Playwright image was cached, and the run starved vm-operator into losing its lease.
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
                   - { key: node.bulbashenko.com/role, operator: NotIn, values: [mail] }
       initContainers:
         # Test exactly this version: wait until Flux has applied the commit this image was built from (E2E_REVISION)
