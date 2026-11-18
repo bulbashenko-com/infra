@@ -18,12 +18,7 @@ resources:
   - route.yaml
   - backup.yaml
   - scrapes.yaml
-  - media-import-secret.sops.yaml
-  - media-import.yaml
 configMapGenerator:
   - name: volume-backup
     files:
       - volume-backup.sh
-  - name: media-import
-    files:
-      - media-import.sh

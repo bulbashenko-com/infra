@@ -44,8 +44,8 @@ allow() { # bucketId keyId [write=true|false]
   post /v2/AllowBucketKey "{\"bucketId\":\"$1\",\"accessKeyId\":\"$2\",\"permissions\":{\"read\":true,\"write\":${3:-true},\"owner\":false}}" >/dev/null
 }
 
-# The site's old media bucket. The gallery moved to Nextcloud (apps/production/nextcloud/media-import.yaml copies
-# what is still in use); nothing writes here any more, and a cleanup removes the bucket once that is verified.
+# The site's old media bucket. The gallery moved to Nextcloud (the one-time import finished on 2026-11-15: 2 files
+# in Site/Gallery); nothing writes here any more. It goes away with Garage.
 media=$(ensure_bucket media | tail -1)
 
 # Staging refresh (apps/staging-platform, apps/staging/site): production exports the site's content database into
