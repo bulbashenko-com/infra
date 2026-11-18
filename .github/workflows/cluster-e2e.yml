@@ -1,0 +1,96 @@
+# The whole cluster on a throw-away k3d cluster, before anything reaches production: Flux applies clusters/ci (the
+# production tree plus the patches that keep it off the outside world) from this pull request's commit, and the check
+# passes only when every Kustomization (and so every HelmRelease and workload under it) is ready.
+# Same k3s version and node layout as hel1: one server, two agents, labelled like hel1-cp, hel1-core, hel1-edge.
+name: cluster-e2e
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cluster-e2e-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  K3D_VERSION: v5.9.0
+  FLUX_VERSION: 2.9.6
+
+jobs:
+  cluster-e2e:
+    name: cluster-e2e
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Tools
+        run: |
+          set -euo pipefail
+          curl -fsSL -o /usr/local/bin/k3d "https://github.com/k3d-io/k3d/releases/download/${K3D_VERSION}/k3d-linux-amd64"
+          chmod +x /usr/local/bin/k3d
+          curl -fsSL "https://github.com/fluxcd/flux2/releases/download/v${FLUX_VERSION}/flux_${FLUX_VERSION}_linux_amd64.tar.gz" \
+            | tar -xz -C /usr/local/bin flux
+          k3d version; flux version --client
+
+      - name: Secrets match production (scripts/ci-secrets.yaml)
+        run: python3 scripts/ci-secrets.py --check
+
+      - name: Cluster
+        run: |
+          set -euo pipefail
+          # The k3s version production runs (terraform/variables.tf), as a rancher/k3s image tag.
+          k3s=$(awk '/variable "k3s_version"/{f=1} f && /default/{gsub(/"/,"",$3); print $3; exit}' terraform/variables.tf)
+          role=node.bulbashenko.com/role
+          k3d cluster create ci --no-lb --wait --timeout 5m \
+            --image "rancher/k3s:${k3s/+/-}" --servers 1 --agents 2 \
+            --k3s-node-label "$role=control-plane@server:0" \
+            --k3s-node-label "$role=mail@agent:0" \
+            --k3s-node-label "$role=edge@agent:1" \
+            --k3s-arg "--node-taint=node-role.kubernetes.io/control-plane:PreferNoSchedule@server:0"
+          kubectl get nodes -L "$role"
+
+      - name: Flux
+        env:
+          BRANCH: ${{ github.head_ref || github.ref_name }}
+          COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          flux install --version="v${FLUX_VERSION}"
+          python3 scripts/ci-secrets.py | kubectl apply -f - >/dev/null
+          flux create source git flux-system --url="https://github.com/${GITHUB_REPOSITORY}" \
+            --branch="$BRANCH" --commit="$COMMIT" --interval=1h
+          flux create kustomization flux-system --source=GitRepository/flux-system --path=./clusters/ci \
+            --prune=true --interval=1h
+
+      - name: Wait until every Kustomization is ready
+        run: |
+          set -uo pipefail
+          deadline=$((SECONDS + 45 * 60))
+          while :; do
+            ks=$(kubectl -n flux-system get kustomizations.kustomize.toolkit.fluxcd.io -o json)
+            total=$(jq '.items | length' <<<"$ks")
+            ready=$(jq '[.items[] | select(any(.status.conditions[]?; .type == "Ready" and .status == "True"))] | length' <<<"$ks")
+            echo "$(date -u +%T) ready $ready/$total"
+            jq -r '.items[] | select(all(.status.conditions[]?; .type != "Ready" or .status != "True"))
+              | "  \(.metadata.name): \([.status.conditions[]? | select(.type == "Ready") | .message] | first // "pending" | .[0:200])"' <<<"$ks"
+            # The root has 10 Kustomizations under it; it must have created them before "all ready" means anything.
+            [ "$total" -gt 1 ] && [ "$ready" = "$total" ] && break
+            [ "$SECONDS" -ge "$deadline" ] && { echo "::error::not ready after 45 minutes"; exit 1; }
+            sleep 30
+          done
+
+      - name: State on failure
+        if: failure()
+        run: |
+          set +e
+          flux get all -A
+          kubectl get pods -A -o wide
+          kubectl get events -A --sort-by=.lastTimestamp | tail -150
+          for p in $(kubectl get pods -A --no-headers | awk '$4 != "Running" && $4 != "Completed" {print $1 "/" $2}'); do
+            echo "::group::$p"; kubectl -n "${p%%/*}" describe pod "${p#*/}" | tail -40
+            kubectl -n "${p%%/*}" logs "${p#*/}" --all-containers --tail=80; echo "::endgroup::"
+          done
