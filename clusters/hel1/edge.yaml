@@ -1,4 +1,4 @@
-# Workloads that own hel1-edge's public IP (Headscale, TeamSpeak). Data came from the restore bucket
+# Workloads that own hel1-edge's public IP (Headscale). Data came from the restore bucket
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:

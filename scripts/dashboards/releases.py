@@ -27,8 +27,6 @@ VERSIONS = "max by (app, env, version, repo, sha) (" + " or ".join([
     labelled(flux("Kustomization", "flux-system", "auth"), "Вход (SSO)", "auth", "прод", "revision", SHA, SHA_FROM_REVISION),
     labelled(flux("Kustomization", "auth-staging", "auth"), "Вход (SSO)", "auth", "staging", "revision", SHA, SHA_FROM_REVISION),
     labelled(flux("Kustomization", "flux-system", "mail"), "Почта", "mail", "прод", "revision", SHA, SHA_FROM_REVISION),
-    labelled(flux("Kustomization", "flux-system", "teamspeak"), "TeamSpeak", "teamspeak", "прод", "revision", SHA,
-             SHA_FROM_REVISION),
     labelled(flux("HelmRelease", "nextcloud", "nextcloud"), "Облако (версия чарта)", "", "прод", "revision", "(.*)"),
     labelled(flux("GitRepository", "flux-system", "flux-system"), "Конфиг кластера (infra)", "infra", "прод", "revision",
              SHA, SHA_FROM_REVISION),

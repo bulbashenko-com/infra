@@ -11,7 +11,7 @@ ROLLING = ('(count(' + INFRA_KS + ' unless on (revision) ' + REPO + ') or vector
            '(count(kube_deployment_status_replicas_updated < kube_deployment_spec_replicas) or vector(0)) + '
            '(count(kube_statefulset_status_replicas_updated < kube_statefulset_replicas) or vector(0))')
 STATE = f'(({FAILING}) > bool 0) * 2 + (({FAILING}) == bool 0) * (({ROLLING}) > bool 0)'
-APPS = "site|site-staging|auth|auth-staging|mail|teamspeak|nextcloud|headscale"
+APPS = "site|site-staging|auth|auth-staging|mail|nextcloud|headscale"
 
 
 def commit(expr):

@@ -64,7 +64,7 @@ allow "$cnpg" "$KEY_CNPG_ID"
 allow "$cnpg" "$KEY_OFFSITE_ID" false
 allow "$media" "$KEY_OFFSITE_ID" false
 
-# One-time restores of volumes moved into the cluster (e.g. Headscale, TeamSpeak from hel1-edge).
+# One-time restores of volumes moved into the cluster (e.g. Headscale from hel1-edge).
 restore=$(ensure_bucket restore | tail -1)
 ensure_key restore "$KEY_RESTORE_ID" "$KEY_RESTORE_SECRET"
 allow "$restore" "$KEY_RESTORE_ID"

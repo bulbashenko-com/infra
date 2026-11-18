@@ -7,7 +7,7 @@
   "packageRules": [
     {
       "description": "Stateful services migrate their data on upgrade and have no staging copy: never merged automatically.",
-      "matchPackageNames": ["/nextcloud/", "/cloudnative-pg/", "/postgresql/", "/garage/", "/stalwart/", "/headscale/", "/teamspeak/"],
+      "matchPackageNames": ["/nextcloud/", "/cloudnative-pg/", "/postgresql/", "/garage/", "/stalwart/", "/headscale/"],
       "automerge": false
     }
   ]

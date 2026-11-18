@@ -22,7 +22,7 @@ def build():
     d.row("Сервисы")
     services = (("Сайт", "site", "bulbashenko.com"), ("Вход (SSO)", "auth", "auth.bulbashenko.com, Ory"),
                 ("Почта", "mail", "Stalwart"), ("Облако", "nextcloud", "Nextcloud"),
-                ("TeamSpeak", "teamspeak", "TeamSpeak"), ("VPN", "headscale", "Headscale, mesh"))
+                ("VPN", "headscale", "Headscale, mesh"))
     d.line(*[d.stat(name, up(ns),
                     f"{what}: все поды в namespace {ns} запущены и готовы. «Проблема» — какой-то под не поднялся "
                     f"или перезапускается: смотри «Логи» с namespace={ns}.",

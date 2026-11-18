@@ -19,7 +19,7 @@ Single source of truth for the bulbashenko.com platform. If it runs, it is descr
   request `dev -> main`, kept open and described by a bot; the owner merges it. Every push to `main` gets a tag
   `vYYYY.MM.DD[.N]` and a GitHub Release. See [Releases](#releases).
 - Secrets are committed **only** encrypted, in `*.sops.yaml`. CI rejects plaintext `kind: Secret` and unencrypted `*.sops.*` files; gitleaks scans every push.
-- App versions: a push to an app repo's `main` (site, auth, mail, teamspeak) pins that commit on this repo's `dev`
+- App versions: a push to an app repo's `main` (site, auth, mail) pins that commit on this repo's `dev`
   (image tag or Flux `GitRepository` commit), straight away and without a PR; production gets it with the release.
   By hand: `just promote <app> [sha]` (preview: `just promote-dry`).
 - Rollback: `just rollback <tag>` (or Actions → rollback) opens a PR that restores `main` to that release.
@@ -29,7 +29,7 @@ Single source of truth for the bulbashenko.com platform. If it runs, it is descr
 1. This repo.
 2. The age private key (offline copy with the owner).
 3. Data backups on the Hetzner Storage Box (rclone crypt, `box:hel1`): CNPG base backups + WAL (60 days),
-   Garage buckets, Headscale/TeamSpeak volume archives. Rehearsed with `apps/production/drill`.
+   Garage buckets, Headscale and Nextcloud volume archives. Rehearsed with `apps/production/drill`.
 
 `tofu apply` → servers come up with k3s via cloud-init → `flux bootstrap` → Flux restores everything else → restore data.
 
@@ -96,7 +96,6 @@ The process, timings, staging, rollback and hotfixes are in [docs/workflow.md](d
 | site | `test` (check, build) green, then images `site`, `site-migrate`, `site-e2e` | `apps/base/site/kustomization.yaml`, `apps/staging/site/kustomization.yaml`, `apps/staging/site-e2e/flux.yaml` |
 | auth | `test` (UI + e2e) green, then images `auth-ui`, `auth-e2e` | `clusters/hel1/auth.yaml`, `apps/staging/auth/flux.yaml` |
 | mail | `CI` green | `clusters/hel1/mail.yaml` |
-| teamspeak | `CI` green | `clusters/hel1/teamspeak.yaml` |
 
 - Gate: Flux posts `staging/auth-e2e` and `staging/site-e2e` on the tested `dev` commit (`apps/staging-platform/notify.yaml`),
   required on `main`; `staging-gate.yml` marks them for hotfix PRs. `prod/<kustomization>` on `main` commits shows the rollout.

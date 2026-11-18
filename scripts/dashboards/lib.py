@@ -240,4 +240,4 @@ SHA_FROM_IMAGE = ".*:([0-9a-f]{40})$"
 def with_repo(expr):
     """Adds `repo`: the GitHub repository a Flux object's revision belongs to (from its source)."""
     return ('label_replace(label_replace(' + expr + ', "repo", "infra", "source_name", "flux-system|infra-dev"), '
-            '"repo", "$1", "source_name", "(auth|mail|teamspeak)")')
+            '"repo", "$1", "source_name", "(auth|mail)")')
