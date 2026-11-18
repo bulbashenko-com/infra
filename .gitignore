@@ -17,3 +17,6 @@ terraform/*.tfstate.backup
 
 # State lives in R2 (versions.tf); never commit a local one again.
 terraform/terraform.tfstate
+
+# Python bytecode from running scripts/dashboards and the like
+__pycache__/
