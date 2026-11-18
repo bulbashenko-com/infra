@@ -23,7 +23,7 @@ jobs:
   cluster-e2e:
     name: cluster-e2e
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v5
 
@@ -67,9 +67,11 @@ jobs:
             --prune=true --interval=1h
 
       - name: Wait until every Kustomization is ready
+        # A cold start of the whole tree takes about 6 minutes. Fails at once when a Kustomization fails to build or
+        # its health check gives up (5 minutes each, clusters/ci), and after 20 minutes in any case.
         run: |
           set -uo pipefail
-          deadline=$((SECONDS + 45 * 60))
+          deadline=$((SECONDS + 20 * 60))
           while :; do
             ks=$(kubectl -n flux-system get kustomizations.kustomize.toolkit.fluxcd.io -o json)
             total=$(jq '.items | length' <<<"$ks")
@@ -77,10 +79,13 @@ jobs:
             echo "$(date -u +%T) ready $ready/$total"
             jq -r '.items[] | select(all(.status.conditions[]?; .type != "Ready" or .status != "True"))
               | "  \(.metadata.name): \([.status.conditions[]? | select(.type == "Ready") | .message] | first // "pending" | .[0:200])"' <<<"$ks"
-            # The root has 10 Kustomizations under it; it must have created them before "all ready" means anything.
+            failed=$(jq -r '[.items[] | select(any(.status.conditions[]?; .type == "Ready" and .status == "False"
+              and (.reason == "HealthCheckFailed" or .reason == "BuildFailed")))] | map(.metadata.name) | join(" ")' <<<"$ks")
+            [ -n "$failed" ] && { echo "::error::failed: $failed"; exit 1; }
+            # The root creates the others first; "all ready" means something only after that.
             [ "$total" -gt 1 ] && [ "$ready" = "$total" ] && break
-            [ "$SECONDS" -ge "$deadline" ] && { echo "::error::not ready after 45 minutes"; exit 1; }
-            sleep 30
+            [ "$SECONDS" -ge "$deadline" ] && { echo "::error::not ready after 20 minutes"; exit 1; }
+            sleep 20
           done
 
       - name: State on failure

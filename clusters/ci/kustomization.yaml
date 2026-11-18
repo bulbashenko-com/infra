@@ -9,11 +9,15 @@
 #   cluster's own Traefik, cloudflared is gone, Nextcloud's Storage Box mount is a local volume, CronJobs are
 #   suspended;
 # - workloads that refuse to start on an empty volume (restore-once) start empty, and the clients of
-#   https://auth.bulbashenko.com trust the internal CA.
+#   https://auth.bulbashenko.com trust the internal CA;
+# - Cloudflare's part is played by Traefik itself (cloudflare.yaml): public names are served on websecure with an
+#   internal-CA certificate and handed to the `web` entrypoint, where production's routes live;
+# - every Kustomization times out after 5 minutes, so a broken workload fails the run quickly.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - ../hel1
+  - cloudflare.yaml
 patches:
   # Flux Operator, Flux itself and staging.
   - patch: |
@@ -46,6 +50,20 @@ patches:
       apiVersion: source.toolkit.fluxcd.io/v1
       kind: GitRepository
       metadata: { name: infra-dev, namespace: flux-system }
+
+  # Fail fast: 5 minutes per Kustomization (a cold start of the whole tree takes about 6).
+  - target: { group: kustomize.toolkit.fluxcd.io, kind: Kustomization }
+    patch: |
+      - op: add
+        path: /spec/timeout
+        value: 5m
+
+  # Workloads that call https://*.bulbashenko.com at start (Headscale's OIDC discovery) wait for the stand-in.
+  - target: { group: kustomize.toolkit.fluxcd.io, kind: Kustomization, name: ^edge$ }
+    patch: |
+      - op: add
+        path: /spec/dependsOn/-
+        value: { name: ci-cloudflare }
 
   # Every Kustomization that decrypts SOPS: no decryption, its Secrets dropped (scripts/ci-secrets.py made them),
   # CronJobs suspended. Listed by name: a new decrypting Kustomization fails CI until it is added here.
@@ -128,23 +146,6 @@ patches:
                         - { name: ci-ca, mountPath: /etc/ci-ca, readOnly: true }
                   volumes:
                     - { name: ci-ca, configMap: { name: ca-bundle } }
-
-  # TeamSpeak starts on an empty volume.
-  - target: { group: kustomize.toolkit.fluxcd.io, kind: Kustomization, name: ^teamspeak$ }
-    patch: |
-      - op: add
-        path: /spec/patches
-        value:
-          - target: { kind: Deployment, name: teamspeak }
-            patch: |
-              apiVersion: apps/v1
-              kind: Deployment
-              metadata: { name: teamspeak }
-              spec:
-                template:
-                  spec:
-                    initContainers:
-                      - { name: restore, $patch: delete }
 
   # Nextcloud: a local volume instead of the Storage Box share.
   - target: { group: kustomize.toolkit.fluxcd.io, kind: Kustomization, name: ^nextcloud$ }

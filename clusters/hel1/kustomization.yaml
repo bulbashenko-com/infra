@@ -13,4 +13,3 @@ resources:
   - nextcloud.yaml
   - site.yaml
   - staging.yaml
-  - teamspeak.yaml
