@@ -11,7 +11,7 @@ on:
     inputs:
       app:
         type: choice
-        options: [site, auth, mail, teamspeak]
+        options: [site, auth, mail]
       sha:
         description: Full commit SHA on the app's main (empty = latest main)
         required: false

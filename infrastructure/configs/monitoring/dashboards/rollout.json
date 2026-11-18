@@ -283,7 +283,7 @@
       "type": "prometheus",
       "uid": "VictoriaMetrics"
      },
-     "expr": "time() - max(kube_replicaset_created{namespace=~\"site|site-staging|auth|auth-staging|mail|teamspeak|nextcloud|headscale\"})",
+     "expr": "time() - max(kube_replicaset_created{namespace=~\"site|site-staging|auth|auth-staging|mail|nextcloud|headscale\"})",
      "instant": true
     }
    ],
@@ -340,7 +340,7 @@
       "type": "prometheus",
       "uid": "VictoriaMetrics"
      },
-     "expr": "max by (exported_namespace, kind, name, ready, reason, short, sha, repo) (label_replace(label_replace(label_replace(label_replace(flux_resource_info{kind=~\"Kustomization|HelmRelease\"}, \"repo\", \"infra\", \"source_name\", \"flux-system|infra-dev\"), \"repo\", \"$1\", \"source_name\", \"(auth|mail|teamspeak)\"), \"short\", \"$1\", \"revision\", \"(?:.*sha1:)?([0-9a-f]{7}|[^@]*)[0-9a-f]*$\"), \"sha\", \"$1\", \"revision\", \".*sha1:([0-9a-f]{40}).*\"))",
+     "expr": "max by (exported_namespace, kind, name, ready, reason, short, sha, repo) (label_replace(label_replace(label_replace(label_replace(flux_resource_info{kind=~\"Kustomization|HelmRelease\"}, \"repo\", \"infra\", \"source_name\", \"flux-system|infra-dev\"), \"repo\", \"$1\", \"source_name\", \"(auth|mail)\"), \"short\", \"$1\", \"revision\", \"(?:.*sha1:)?([0-9a-f]{7}|[^@]*)[0-9a-f]*$\"), \"sha\", \"$1\", \"revision\", \".*sha1:([0-9a-f]{40}).*\"))",
      "instant": true,
      "format": "table"
     }
@@ -492,7 +492,7 @@
       "type": "prometheus",
       "uid": "VictoriaMetrics"
      },
-     "expr": "clamp_max(min by (namespace, deployment) (kube_deployment_status_replicas_updated{namespace=~\"site|site-staging|auth|auth-staging|mail|teamspeak|nextcloud|headscale\"}) / max by (namespace, deployment) (kube_deployment_spec_replicas{namespace=~\"site|site-staging|auth|auth-staging|mail|teamspeak|nextcloud|headscale\"} > 0), 1)",
+     "expr": "clamp_max(min by (namespace, deployment) (kube_deployment_status_replicas_updated{namespace=~\"site|site-staging|auth|auth-staging|mail|nextcloud|headscale\"}) / max by (namespace, deployment) (kube_deployment_spec_replicas{namespace=~\"site|site-staging|auth|auth-staging|mail|nextcloud|headscale\"} > 0), 1)",
      "legendFormat": "{{namespace}}/{{deployment}}",
      "instant": true
     }
@@ -907,7 +907,7 @@
      "type": "prometheus",
      "uid": "VictoriaMetrics"
     },
-    "expr": "changes(kube_deployment_metadata_generation{namespace=~\"site|site-staging|auth|auth-staging|mail|teamspeak|nextcloud|headscale\"}[2m]) > 0",
+    "expr": "changes(kube_deployment_metadata_generation{namespace=~\"site|site-staging|auth|auth-staging|mail|nextcloud|headscale\"}[2m]) > 0",
     "step": "60s",
     "titleFormat": "Выкатка {{namespace}}/{{deployment}}",
     "textFormat": "Новая версия пода",

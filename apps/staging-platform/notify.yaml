@@ -52,7 +52,7 @@ spec:
     name: github-app
   commitStatusExpr: "'prod/' + event.involvedObject.name"
 ---
-# Only Kustomizations sourced from this repo's main (GitRepository flux-system). auth, mail and teamspeak are read
+# Only Kustomizations sourced from this repo's main (GitRepository flux-system). auth and mail are read
 # from their own repos: their revision is not an infra commit, and GitHub would refuse the status.
 apiVersion: notification.toolkit.fluxcd.io/v1beta3
 kind: Alert

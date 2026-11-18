@@ -117,16 +117,6 @@ resource "cloudflare_dns_record" "media_aaaa" {
   depends_on = [cloudflare_dns_record.media]
 }
 
-resource "cloudflare_dns_record" "ts_a" {
-  comment = "[voice] TeamSpeak 6 on hel1-edge (UDP 9987, TCP 30033; DNS-only)"
-  content = "62.238.18.202"
-  name    = "ts.bulbashenko.com"
-  proxied = false
-  ttl     = 300
-  type    = "A"
-  zone_id = var.cloudflare_zone_id
-}
-
 resource "cloudflare_dns_record" "www" {
   comment = "[web] redirects to apex, via Tunnel"
   content = local.tunnel_cname
