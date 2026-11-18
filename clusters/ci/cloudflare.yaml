@@ -1,0 +1,17 @@
+# What Cloudflare does for production, played inside the CI cluster: TLS for the public names, then plain HTTP to
+# Traefik's `web` entrypoint, where the production routes (site, auth., cloud.) listen behind the tunnel.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: ci-cloudflare
+  namespace: flux-system
+  labels: { bulbashenko.com/layer: platform, bulbashenko.com/app: ci }
+spec:
+  dependsOn:
+    - name: infrastructure
+  interval: 1h
+  path: ./clusters/ci/cloudflare
+  prune: true
+  wait: true
+  timeout: 5m
+  sourceRef: { kind: GitRepository, name: flux-system }

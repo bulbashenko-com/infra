@@ -1,0 +1,15 @@
+# Entry point of the hel1 cluster (FluxInstance sync path). Listed explicitly so clusters/ci can reuse this directory
+# and patch what differs in the CI cluster. A new file here must be added to this list.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - flux-operator.yaml
+  - flux-instance.yaml
+  - infrastructure.yaml
+  - apps.yaml
+  - auth.yaml
+  - edge.yaml
+  - mail.yaml
+  - nextcloud.yaml
+  - site.yaml
+  - staging.yaml

@@ -1,0 +1,24 @@
+# The CI cluster's stand-in for Cloudflare's edge (clusters/ci/cloudflare.yaml). ClusterIssuer letsencrypt is the
+# internal CA in CI, so this certificate costs nothing and never leaves the cluster.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: ci-public
+spec:
+  secretName: ci-public-tls
+  issuerRef: { kind: ClusterIssuer, name: letsencrypt }
+  dnsNames: [bulbashenko.com, "*.bulbashenko.com"]
+---
+# Lowest priority: names that production serves on websecure itself (media., *.int) keep their own routes.
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: ci-public
+spec:
+  entryPoints: [websecure]
+  routes:
+    - match: HostRegexp(`^(.+\.)?bulbashenko\.com$`)
+      priority: 1
+      services: [{ name: traefik, port: 80 }]
+  tls:
+    secretName: ci-public-tls
