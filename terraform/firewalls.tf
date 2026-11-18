@@ -41,6 +41,9 @@ resource "hcloud_firewall" "hel1_core" {
   }
 }
 
+# hel1-edge: Headscale (hs., DNS-only) and DERP on 443, STUN, TeamSpeak. No port 80: certificates use DNS-01, and
+# Traefik answers there with every web host, so an open 80 let anyone reach the site, auth. and cloud. by node IP,
+# bypassing Cloudflare.
 resource "hcloud_firewall" "hel1_edge" {
   name = "hel1-edge-fw"
   apply_to {
@@ -51,13 +54,6 @@ resource "hcloud_firewall" "hel1_edge" {
     direction   = "in"
     port        = "3478"
     protocol    = "udp"
-    source_ips  = ["0.0.0.0/0", "::/0"]
-  }
-  rule {
-    description = "http (headscale, LE)"
-    direction   = "in"
-    port        = "80"
-    protocol    = "tcp"
     source_ips  = ["0.0.0.0/0", "::/0"]
   }
   rule {
