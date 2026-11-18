@@ -30,7 +30,7 @@ resource "hcloud_primary_ip" "core_v6" {
   }
 }
 
-# hel1-edge IP: DNS for hs. (Headscale, DNS-only) and ts. (TeamSpeak) points here; it must survive
+# hel1-edge IP: DNS for hs. (Headscale, DNS-only) and media. points here; it must survive
 # the server being recreated as a k3s agent.
 resource "hcloud_primary_ip" "edge_v4" {
   location          = var.location
@@ -46,7 +46,7 @@ resource "hcloud_primary_ip" "edge_v4" {
   }
 }
 
-# hel1-edge IP: DNS for hs. (Headscale, DNS-only) and ts. (TeamSpeak) points here; it must survive
+# hel1-edge IP: DNS for hs. (Headscale, DNS-only) and media. points here; it must survive
 # the server being recreated as a k3s agent.
 resource "hcloud_primary_ip" "edge_v6" {
   location          = var.location
@@ -100,10 +100,16 @@ resource "hcloud_server" "hel1_core" {
     k3s_version    = var.k3s_version
   })
 
+  lifecycle {
+    # cloud-init runs once; template changes apply on a deliberate `tofu apply -replace=...`. Without this, any
+    # edit of the shared agent template would replace the mail node.
+    ignore_changes = [user_data, image]
+  }
+
   depends_on = [hcloud_network_subnet.hel1_net]
 }
 
-# hel1-edge: k3s agent (role=edge). Owns the public IP that hs. (Headscale) and ts. (TeamSpeak) point at;
+# hel1-edge: k3s agent (role=edge). Owns the public IP that hs. (Headscale) and media. point at;
 # the primary IPs are separate, protected resources, so the server can be recreated without losing them.
 resource "hcloud_server" "hel1_edge" {
   name        = "hel1-edge"

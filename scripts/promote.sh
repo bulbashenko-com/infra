@@ -27,7 +27,6 @@ case $app in
              keys=newTag; image="ghcr.io/$org/site ghcr.io/$org/site-migrate ghcr.io/$org/site-e2e" ;;
   auth)      files=(clusters/hel1/auth.yaml apps/staging/auth/flux.yaml); keys='commit|newTag'; image=ghcr.io/$org/auth-ui ;;
   mail)      files=(clusters/hel1/mail.yaml); keys=commit; deploy_paths='^(kustomization\.yaml|deploy/k8s/)' ;;
-  teamspeak) files=(clusters/hel1/teamspeak.yaml); keys=commit; deploy_paths='^(kustomization\.yaml|deploy/k8s/)' ;;
   *) echo "unknown app: $app" >&2; exit 1 ;;
 esac
 pin_re="^([[:space:]]*(${keys}): )([0-9a-f]{40})$"

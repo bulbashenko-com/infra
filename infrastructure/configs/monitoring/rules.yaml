@@ -111,25 +111,25 @@ spec:
             summary: "{{ $labels.pod }} без соединений с Cloudflare"
             description: "Туннель работает на оставшемся поде, резерва нет."
         - alert: CertificateExpiringSoon
-          expr: (certmanager_certificate_expiration_timestamp_seconds - time()) / 86400 < 14
+          expr: ((certmanager_certificate_expiration_timestamp_seconds > 0) - time()) / 86400 < 14
           for: 1h
           labels: { severity: warning }
           annotations:
-            summary: "Сертификат {{ $labels.namespace }}/{{ $labels.name }} истекает через {{ $value | humanize }} дн"
+            summary: "Сертификат {{ $labels.exported_namespace }}/{{ $labels.name }} истекает через {{ $value | humanize }} дн"
             description: "cert-manager продлевает за 30 дней, значит продление не проходит. kubectl describe certificate."
         - alert: CertificateExpiringCritical
-          expr: (certmanager_certificate_expiration_timestamp_seconds - time()) / 86400 < 3
+          expr: ((certmanager_certificate_expiration_timestamp_seconds > 0) - time()) / 86400 < 3
           for: 10m
           labels: { severity: critical }
           annotations:
-            summary: "Сертификат {{ $labels.namespace }}/{{ $labels.name }} истекает через {{ $value | humanize }} дн"
+            summary: "Сертификат {{ $labels.exported_namespace }}/{{ $labels.name }} истекает через {{ $value | humanize }} дн"
             description: "Меньше 3 дней до истечения."
         - alert: CertificateNotReady
           expr: certmanager_certificate_ready_status{condition="False"} == 1
           for: 30m
           labels: { severity: warning }
           annotations:
-            summary: "Сертификат {{ $labels.namespace }}/{{ $labels.name }} не Ready"
+            summary: "Сертификат {{ $labels.exported_namespace }}/{{ $labels.name }} не Ready"
             description: "Certificate не в состоянии Ready 30 минут."
         - alert: TraefikHigh5xxRate
           expr: |
